@@ -1,15 +1,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include "cuda.h"
+#include "cuda_runtime.h"
 #include "cryptonight.h"
 
-extern cudaError_t MyStreamSynchronize(cudaStream_t stream, int situation, int thr_id);
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 typedef unsigned char BitSequence;
 typedef unsigned long long DataLength;
-
-extern int opt_cn_threads;
-extern int opt_cn_blocks;
 
 __constant__ uint32_t pTarget[8];
 __constant__ uint32_t d_input[19];
@@ -250,16 +251,18 @@ __host__ void cryptonight_cpu_init(int thr_id, int threads)
     cudaMemcpyToSymbol( d_E8_rc, h_E8_rc, sizeof(h_E8_rc), 0, cudaMemcpyHostToDevice);
 }
 
-__host__ void cryptonight_cpu_hash(int thr_id, int threads, uint32_t startNonce, uint32_t *nonce, uint8_t *d_long_state, union cn_gpu_hash_state *d_hash_state)
+__host__ void cryptonight_cpu_hash(int thr_id, int blocks, int threads, uint32_t startNonce, uint32_t *nonce, uint8_t *d_long_state, union cn_gpu_hash_state *d_hash_state)
 {
-    dim3 grid(opt_cn_blocks);
-    dim3 block(opt_cn_threads);
+    dim3 grid(blocks);
+    dim3 block(threads);
 
     size_t shared_size = 1024;
 
     cudaMemset(d_resultNonce[thr_id], 0xFF, sizeof(uint32_t));
-    cryptonight_gpu_hash<<<grid, block, shared_size>>>(threads, startNonce, d_resultNonce[thr_id], d_long_state, d_hash_state);
-    MyStreamSynchronize(NULL, 0, thr_id);
+    cryptonight_gpu_hash<<<grid, block, shared_size>>>(blocks*threads, startNonce, d_resultNonce[thr_id], d_long_state, d_hash_state);
+
+    cudaDeviceSynchronize();
+
     cudaMemcpy(nonce, d_resultNonce[thr_id], sizeof(uint32_t), cudaMemcpyDeviceToHost);
 }
 

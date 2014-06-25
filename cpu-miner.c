@@ -63,6 +63,7 @@ int cuda_finddevice(char *name);
 #endif
 
 extern void cryptonight_hash(void* output, const void* input, size_t len);
+void parse_device_config( char *config, int *blocks, int *threads );
 
 #ifdef __linux /* Linux specific policy and affinity management */
 #include <sched.h>
@@ -178,6 +179,7 @@ uint16_t opt_vote = 9999;
 static int num_processors;
 int device_map[8] = {0,1,2,3,4,5,6,7}; // CB
 char *device_name[8]; // CB
+int device_config[8][2];
 static char *rpc_url;
 static char *rpc_userpass;
 static char *rpc_user, *rpc_pass;
@@ -241,8 +243,15 @@ Options:\n\
                         string names of your cards like gtx780ti or gt640#2\n\
                         (matching 2nd gt640 in the PC)\n\
   -f, --diff            Divide difficulty by this factor (std is 1) \n\
-  -k, --launch=CONFIG   launch config for the Cryptonight kernel\n\
-                          THREADSxBLOCKS (default: 8x40)\n\
+  -l, --launch=CONFIG   launch config for the Cryptonight kernel.\n\
+                        a comma separated list of values in form of\n\
+                        AxB where A is the number of threads to run in\n\
+                        each thread block and B is the number of thread\n\
+                        blocks to launch. If less values than devices in use\n\
+                        are provided, the last value will be used for\n\
+                        the remaining devices. If you don't need to vary the\n\
+                        value between devices, you can just enter a single value\n\
+                        and it will be used for all devices. (default: 8x40)\n\
   -v, --vote=VOTE       block reward vote (for HeavyCoin)\n\
   -m, --trust-pool      trust the max block reward vote (maxvote) sent by the pool\n\
   -o, --url=URL         URL of mining server\n\
@@ -1129,6 +1138,12 @@ static void *miner_thread(void *userdata)
 		affine_to_cpu(thr_id, thr_id % num_processors);
 	}
 
+    if( opt_algo == ALGO_CRYPTONIGHT ) {
+
+        applog(LOG_INFO, "GPU #%d: %s, using %d blocks of %d threads",
+            device_map[thr_id], device_name[thr_id], device_config[thr_id][0], device_config[thr_id][1]);
+    }
+
     uint32_t *nonceptr = (uint32_t*) (((char*)work.data) + (jsonrpc_2 ? 39 : 76));
 
 	while (1) {
@@ -1573,6 +1588,41 @@ static void show_usage_and_exit(int status)
 	exit(status);
 }
 
+void parse_device_config( char *config, int *blocks, int *threads )
+{
+    char *p;
+    int tmp_blocks, tmp_threads;
+    
+    if( config == NULL ) goto usedefault;
+
+
+    p = strtok(config, "x");
+    if(!p)
+        goto usedefault;
+    
+    tmp_threads = atoi(p);
+    if( tmp_threads < 4 || tmp_threads > 1024 )
+        goto usedefault;
+    
+    p = strtok(NULL, "x");
+    if(!p)
+        goto usedefault;
+
+    tmp_blocks = atoi(p);
+    if( tmp_blocks < 1 )
+        goto usedefault;
+
+    *blocks = tmp_blocks;
+    *threads = tmp_threads;
+    return;
+
+usedefault:
+    *blocks = opt_cn_blocks;
+    *threads = opt_cn_threads;
+    return;
+
+}
+
 static void parse_arg (int key, char *arg)
 {
 	char *p;
@@ -1783,19 +1833,27 @@ static void parse_arg (int key, char *arg)
 		opt_difficulty = d;
 		break;
 	case 'l':			/* cryptonight launch config */
-        p = strtok(arg, "x");
-		if (!p) show_usage_and_exit(1);
-        opt_cn_threads = atoi(p);
-        if( opt_cn_threads < 4 || opt_cn_threads > 1024 ) {
-            applog(LOG_ERR, "Invalid value for threads per block, must be between 4 and 1024");
-            show_usage_and_exit(1);
-        }
-        p = strtok(NULL, "x");
-		if (!p) show_usage_and_exit(1);
-        opt_cn_blocks = atoi(p);
-        if( opt_cn_blocks < 1 ) {
-            applog(LOG_ERR, "Invalid value for thread blocks, needs to be at least 1");
-            show_usage_and_exit(1);
+        {
+            char *tmp_config[8];
+            int tmp_blocks = opt_cn_blocks, tmp_threads = opt_cn_threads;
+            for( i = 0; i < 8; i++ ) tmp_config[i] = NULL;
+            p = strtok(arg, ",");
+            if( p == NULL ) show_usage_and_exit(1);
+            i = 0;
+            while( p != NULL && i < 8 ) {
+                tmp_config[i++] = strdup(p);
+                p = strtok(NULL, ",");
+            }
+            while (i < 8) {
+                tmp_config[i] = strdup(tmp_config[i-1]);
+                i++;
+            }
+
+            for( i = 0; i < 8; i++ ) {
+                parse_device_config(tmp_config[i], &tmp_blocks, &tmp_threads);
+                device_config[i][0] = tmp_blocks;
+                device_config[i][1] = tmp_threads;
+            }
         }
         break;
 
@@ -1921,7 +1979,12 @@ int main(int argc, char *argv[])
 	pthread_mutex_init(&applog_lock, NULL);
 	num_processors = cuda_num_devices();
 
-	/* parse command line */
+	for(i = 0; i < 8; i++) {
+        device_config[i][0] = opt_cn_blocks;
+        device_config[i][1] = opt_cn_threads;
+    }
+
+    /* parse command line */
 	parse_cmdline(argc, argv);
 
 	cuda_devicenames();
@@ -1929,7 +1992,6 @@ int main(int argc, char *argv[])
     if(opt_algo == ALGO_CRYPTONIGHT) {
         jsonrpc_2 = true;
         applog(LOG_INFO, "Using JSON-RPC 2.0");
-        applog(LOG_INFO, "Using %d blocks of %d threads for cryptonight kernel", opt_cn_blocks, opt_cn_threads);
     }
 
 	if (!opt_benchmark && !rpc_url) {
@@ -1988,7 +2050,7 @@ int main(int argc, char *argv[])
 		openlog("cpuminer", LOG_PID, LOG_USER);
 #endif
 
-	work_restart = (struct work_restart *)calloc(opt_n_threads, sizeof(*work_restart));
+    work_restart = (struct work_restart *)calloc(opt_n_threads, sizeof(*work_restart));
 	if (!work_restart)
 		return 1;
 

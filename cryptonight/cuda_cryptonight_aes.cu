@@ -164,8 +164,10 @@ static void cn_aes_cpu_init()
 
 __device__ __forceinline__ void cn_aes_gpu_init(uint32_t *sharedMemory)
 {
-	int i, x;
+	int x;
 
+    // TODO: actually spread the shared memory loading between more or less all threads
+    // instead of just using the first four to do it...
     if(threadIdx.x < 4) {
 		
         for( x = 0; x < 256; x++ ) {
