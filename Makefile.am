@@ -39,7 +39,7 @@ ccminer_SOURCES		= elist.h miner.h compat.h \
 			  x13/x13.cu x13/cuda_x13_hamsi512.cu x13/cuda_x13_fugue512.cu \
 			  x11/x11.cu x11/cuda_x11_luffa512.cu x11/cuda_x11_cubehash512.cu \
 			  x11/cuda_x11_shavite512.cu x11/cuda_x11_simd512.cu x11/cuda_x11_echo.cu \
-			  cryptonight/cryptonight.cu cryptonight/cuda_cryptonight.cu \
+			  cryptonight/cryptonight.cu cryptonight/cuda_cryptonight_core.cu cryptonight/cuda_cryptonight_extra.cu \
 			  cryptonight.c \
 			  crypto/oaes_lib.c \
 			  crypto/c_keccak.c \
@@ -54,12 +54,12 @@ ccminer_LDFLAGS		= $(PTHREAD_FLAGS) @CUDA_LDFLAGS@
 ccminer_LDADD		= @LIBCURL@ @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ @CUDA_LIBS@ @OPENMP_CFLAGS@ @LIBS@
 ccminer_CPPFLAGS	= -msse2 @LIBCURL_CPPFLAGS@ @OPENMP_CFLAGS@ $(PTHREAD_FLAGS) -fno-strict-aliasing $(JANSSON_INCLUDES) -DSCRYPT_KECCAK512 -DSCRYPT_CHACHA -DSCRYPT_CHOOSE_COMPILETIME
 
-#NVCC_GENCODE		= -gencode=arch=compute_35,code=\"sm_35,compute_35\"
-NVCC_GENCODE		= -gencode=arch=compute_30,code=\"sm_30,compute_30\" -gencode=arch=compute_35,code=\"sm_35,compute_35\"
+NVCC_GENCODE		= -gencode=arch=compute_35,code=\"sm_35,compute_35\"
+#NVCC_GENCODE		= -gencode=arch=compute_30,code=\"sm_30,compute_30\" -gencode=arch=compute_35,code=\"sm_35,compute_35\"
 
 # we're now targeting all major compute architectures within one binary.
 .cu.o:
-	$(NVCC) @CFLAGS@ -I . -Xptxas "-abi=no -v" $(NVCC_GENCODE) --ptxas-options=-v $(JANSSON_INCLUDES) -o $@ -c $<
+	$(NVCC) @CFLAGS@ -I . -Xptxas "-abi=no -v" $(NVCC_GENCODE) --maxrregcount=80 --ptxas-options=-v $(JANSSON_INCLUDES) -o $@ -c $<
 
 # Shavite compiles faster with 128 regs
 x11/cuda_x11_shavite512.o: x11/cuda_x11_shavite512.cu

@@ -6,13 +6,13 @@
 
 #include "cpuminer-config.h"
 #include "miner.h"
-#include "cryptonight.h"
 #include "crypto/oaes_lib.h"
 #include "crypto/c_keccak.h"
 #include "crypto/c_groestl.h"
 #include "crypto/c_blake256.h"
 #include "crypto/c_jh.h"
 #include "crypto/c_skein.h"
+#include "cryptonight.h"
 
 struct cryptonight_ctx {
     uint8_t long_state[MEMORY];

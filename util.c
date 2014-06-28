@@ -1348,3 +1348,30 @@ out:
 	pthread_mutex_unlock(&tq->mutex);
 	return rval;
 }
+
+void hexdump( const char *what, void *data, const size_t datalen )
+{
+    char *padding;
+    int i, len;
+    
+    len = strlen(what) + 3;
+    padding = (char *)malloc(len+1);
+
+    if( padding == NULL ) return;
+
+    memset(padding, 0x20, len);
+    padding[len] = 0;
+
+    printf("%s : ", what);
+    
+    for( i = 0; i < datalen; i++ ) {
+
+        if( i > 0 && i % 16 == 0 ) printf("\n%s", padding);
+        printf("0x%02x ", ((uint8_t*)data)[i]);
+    }
+    
+    printf("\n");
+
+    free(padding);
+}
+

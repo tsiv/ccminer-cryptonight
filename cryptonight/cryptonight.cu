@@ -15,13 +15,17 @@ extern int device_map[8];
 extern int device_config[8][2];
 
 static uint8_t *d_long_state[8];
-static union cn_gpu_hash_state *d_hash_state[8];
+static struct cryptonight_gpu_ctx *d_ctx[8];
 
 extern bool opt_benchmark;
 
-extern void cryptonight_cpu_init(int thr_id, int threads);
-extern void cryptonight_cpu_setInput(int thr_id, void *data, void *pTargetIn);
-extern void cryptonight_cpu_hash(int thr_id, int blocks, int threads, uint32_t startNonce, uint32_t *nonce, uint8_t *d_long_state, union cn_gpu_hash_state *d_hash_state);
+extern void cryptonight_core_cpu_init(int thr_id, int threads);
+extern void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint8_t *d_long_state, struct cryptonight_gpu_ctx *d_ctx);
+
+extern void cryptonight_extra_cpu_setData(int thr_id, const void *data, const void *pTargetIn);
+extern void cryptonight_extra_cpu_init(int thr_id);
+extern void cryptonight_extra_cpu_prepare(int thr_id, int threads, uint32_t startNonce, struct cryptonight_gpu_ctx *d_ctx);
+extern void cryptonight_extra_cpu_final(int thr_id, int threads, uint32_t startNonce, uint32_t *nonce, struct cryptonight_gpu_ctx *d_ctx);
 
 extern "C" void cryptonight_hash(void* output, const void* input, size_t len);
 
@@ -49,23 +53,26 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
         cudaDeviceReset();
         cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
 		if( cudaMalloc(&d_long_state[thr_id], alloc) != cudaSuccess ) {
-            applog(LOG_ERR, "GPU #%d: FATAL: failed to allocate device memory for the long state variable", thr_id);
+            applog(LOG_ERR, "GPU #%d: FATAL: failed to allocate device memory for long state", thr_id);
             exit(1);
         }
-		if( cudaMalloc(&d_hash_state[thr_id], sizeof(union cn_gpu_hash_state) * throughput) != cudaSuccess ) {
-            applog(LOG_ERR, "GPU #%d: FATAL: failed to allocate device memory for the hash state variable", thr_id);
+		if( cudaMalloc(&d_ctx[thr_id], sizeof(struct cryptonight_gpu_ctx) * throughput) != cudaSuccess ) {
+            applog(LOG_ERR, "GPU #%d: FATAL: failed to allocate device memory for hash context", thr_id);
             exit(1);
         }
-		cryptonight_cpu_init(thr_id, throughput);
+		cryptonight_core_cpu_init(thr_id, throughput);
+        cryptonight_extra_cpu_init(thr_id);
 		init[thr_id] = true;
 	}
 
-    cryptonight_cpu_setInput(thr_id, (void *)pdata, (void*)ptarget);
+    cryptonight_extra_cpu_setData(thr_id, (const void *)pdata, (const void *)ptarget);
 
 	do {
         uint32_t foundNonce = 0xFFFFFFFF;
 
-        cryptonight_cpu_hash(thr_id, cn_blocks, cn_threads, nonce, &foundNonce, d_long_state[thr_id], d_hash_state[thr_id]);
+        cryptonight_extra_cpu_prepare(thr_id, throughput, nonce, d_ctx[thr_id]);
+        cryptonight_core_cpu_hash(thr_id, cn_blocks, cn_threads, d_long_state[thr_id], d_ctx[thr_id]);
+        cryptonight_extra_cpu_final(thr_id, throughput, nonce, &foundNonce, d_ctx[thr_id]);
 
         if (foundNonce < 0xffffffff)
 		{

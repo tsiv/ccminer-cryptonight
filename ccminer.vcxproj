@@ -541,7 +541,13 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">-Xptxas "-abi=no -v" %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">-Xptxas "-abi=no -v" %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
-    <CudaCompile Include="cryptonight\cuda_cryptonight.cu">
+    <CudaCompile Include="cryptonight\cuda_cryptonight_extra.cu">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">-Xptxas "-abi=no -v" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">-Xptxas "-abi=no -v" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">-Xptxas "-abi=no -v" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">-Xptxas "-abi=no -v" %(AdditionalOptions)</AdditionalOptions>
+    </CudaCompile>
+    <CudaCompile Include="cryptonight\cuda_cryptonight_core.cu">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">-Xptxas "-abi=no -v" %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">-Xptxas "-abi=no -v" %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">-Xptxas "-abi=no -v" %(AdditionalOptions)</AdditionalOptions>
