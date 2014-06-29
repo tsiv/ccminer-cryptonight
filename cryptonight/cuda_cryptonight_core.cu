@@ -9,9 +9,6 @@
 #include <unistd.h>
 #endif
 
-typedef unsigned char BitSequence;
-typedef unsigned long long DataLength;
-
 #include "cuda_cryptonight_aes.cu"
 
 #define hi_dword(x) (x >> 32)
@@ -47,27 +44,31 @@ __global__ void cryptonight_core_gpu_phase1(int threads, uint8_t *d_long_state, 
 
 	__syncthreads();
 
-    int thread = (blockDim.x * blockIdx.x + threadIdx.x);
+    int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 3;
+    int sub = threadIdx.x & 7;
    
     if (thread < threads)
     {
         int i, j;
         uint8_t *long_state = &d_long_state[MEMORY * thread];
+        uint32_t *ls32;
         struct cryptonight_gpu_ctx *ctx = &d_ctx[thread];
         uint32_t key[40];
-        uint32_t text[32];
+        uint32_t text[4];
+        uint32_t *state = (uint32_t *)&ctx->state[16+(sub<<2)];
 
         MEMCPY8(key, ctx->key1, 20);
-        MEMCPY8(text, ctx->state+16, 16);
+        for( i = 0; i < 4; i++ )
+            text[i] = state[i];
 
         for (i = 0; i < MEMORY; i += INIT_SIZE_BYTE) {
 
-            for( j = 0; j < 8; j++ ) {
+            ls32 = (uint32_t *)&long_state[i];
 
-                cn_aes_pseudo_round_mut(sharedMemory, &text[(AES_BLOCK_SIZE >> 2) * j], key);
-            }
+            cn_aes_pseudo_round_mut(sharedMemory, text, key);
 
-            MEMCPY8(&long_state[i], text, 16);
+            for( j = 0; j < 4; j++ )
+                ls32[(sub<<2) + j] = text[j];
         }
     }
 }
@@ -114,29 +115,35 @@ __global__ void cryptonight_core_gpu_phase3(int threads, uint8_t *d_long_state, 
 
 	__syncthreads();
 
-    int thread = (blockDim.x * blockIdx.x + threadIdx.x);
+    int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 3;
+    int sub = threadIdx.x & 7;
    
     if (thread < threads)
     {
         int i, j;
         uint8_t *long_state = &d_long_state[MEMORY * thread];
+        uint32_t *ls32;
         struct cryptonight_gpu_ctx *ctx = &d_ctx[thread];
         uint32_t key[40];
-        uint32_t text[32];
+        uint32_t text[4];
+        uint32_t *state = (uint32_t *)&ctx->state[16+(sub<<2)];
 
         MEMCPY8(key, ctx->key2, 20);
-        MEMCPY8(text, ctx->state+16, 16);
+        for( i = 0; i < 4; i++ )
+            text[i] = state[i];
 
         for (i = 0; i < MEMORY; i += INIT_SIZE_BYTE) {
-            
-            for( j = 0; j < 8; j++ ) {
 
-                XOR_BLOCKS(&text[(j * AES_BLOCK_SIZE) >> 2], &long_state[i + j * AES_BLOCK_SIZE]);
-                cn_aes_pseudo_round_mut(sharedMemory, &text[(j * AES_BLOCK_SIZE) >> 2], key);
-            }
+            ls32 = (uint32_t *)&long_state[i];
+
+            for( j = 0; j < 4; j++ )
+                text[j] ^= ls32[(sub<<2)+j];
+
+            cn_aes_pseudo_round_mut(sharedMemory, text, key);
         }
-        
-        MEMCPY8(ctx->state+16, text, 16);
+
+        for( i = 0; i < 4; i++ )
+            state[i] = text[i];
     }
 }
 
@@ -149,16 +156,16 @@ __host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uin
 {
     dim3 grid(blocks);
     dim3 block(threads);
+    dim3 block8(threads << 3);
 
     size_t shared_size = 1024;
 
-    cryptonight_core_gpu_phase1<<<grid, block, shared_size>>>(blocks*threads, d_long_state, d_ctx);
+    cryptonight_core_gpu_phase1<<<grid, block8, shared_size>>>(blocks*threads, d_long_state, d_ctx);
     cudaDeviceSynchronize();
 
     cryptonight_core_gpu_phase2<<<grid, block, shared_size>>>(blocks*threads, d_long_state, d_ctx);
     cudaDeviceSynchronize();
 
-    cryptonight_core_gpu_phase3<<<grid, block, shared_size>>>(blocks*threads, d_long_state, d_ctx);
+    cryptonight_core_gpu_phase3<<<grid, block8, shared_size>>>(blocks*threads, d_long_state, d_ctx);
     cudaDeviceSynchronize();
 }
-
