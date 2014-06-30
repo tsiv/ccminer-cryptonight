@@ -171,7 +171,7 @@ int opt_timeout = 270;
 static int opt_scantime = 5;
 static json_t *opt_config;
 static const bool opt_time = true;
-static sha256_algos opt_algo = ALGO_HEAVY;
+static sha256_algos opt_algo = ALGO_CRYPTONIGHT;
 static int opt_n_threads = 0;
 static double opt_difficulty = 1; // CH
 bool opt_trust_pool = false;
@@ -225,19 +225,6 @@ struct option {
 static char const usage[] = "\
 Usage: " PROGRAM_NAME " [OPTIONS]\n\
 Options:\n\
-  -a, --algo=ALGO       specify the algorithm to use\n\
-                        fugue256     Fuguecoin hash\n\
-                        heavy        Heavycoin hash\n\
-                        mjollnir     Mjollnircoin hash\n\
-                        groestl      Groestlcoin hash\n\
-                        myr-gr       Myriad-Groestl hash\n\
-                        jackpot      Jackpot hash\n\
-                        quark        Quark hash\n\
-                        anime        Animecoin hash\n\
-                        nist5        NIST5 (TalkCoin) hash\n\
-                        x11          X11 (DarkCoin) hash\n\
-                        x13          X13 (MaruCoin) hash\n\
-                        cryptonight  CryptoNight hash\n\
   -d, --devices         takes a comma separated list of CUDA devices to use.\n\
                         Device IDs start counting from 0! Alternatively takes\n\
                         string names of your cards like gtx780ti or gt640#2\n\
@@ -252,7 +239,6 @@ Options:\n\
                         the remaining devices. If you don't need to vary the\n\
                         value between devices, you can just enter a single value\n\
                         and it will be used for all devices. (default: 8x40)\n\
-  -v, --vote=VOTE       block reward vote (for HeavyCoin)\n\
   -m, --trust-pool      trust the max block reward vote (maxvote) sent by the pool\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\
@@ -294,7 +280,7 @@ static char const short_options[] =
 #ifdef HAVE_SYSLOG_H
 	"S"
 #endif
-	"a:c:Dhp:Px:qr:R:s:t:T:o:u:O:Vd:f:mv:l:";
+	"a:c:Dhp:Px:qr:R:s:t:T:o:u:O:Vd:f:ml:";
 
 static struct option const options[] = {
 	{ "algo", 1, NULL, 'a' },
@@ -319,7 +305,6 @@ static struct option const options[] = {
 	{ "syslog", 0, NULL, 'S' },
 #endif
 	{ "threads", 1, NULL, 't' },
-	{ "vote", 1, NULL, 'v' },
 	{ "trust-pool", 0, NULL, 'm' },
 	{ "timeout", 1, NULL, 'T' },
 	{ "url", 1, NULL, 'o' },
@@ -1039,20 +1024,11 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
         memcpy(work->xnonce2, sctx->job.xnonce2, sctx->xnonce2_size);
 
         /* Generate merkle root */
-        if (opt_algo == ALGO_HEAVY || opt_algo == ALGO_MJOLLNIR)
-            heavycoin_hash(merkle_root, sctx->job.coinbase, (int)sctx->job.coinbase_size);
-        else
-        if (opt_algo == ALGO_FUGUE256 || opt_algo == ALGO_GROESTL)
-            SHA256((unsigned char*)sctx->job.coinbase, sctx->job.coinbase_size, (unsigned char*)merkle_root);
-        else
-            sha256d(merkle_root, sctx->job.coinbase, (int)sctx->job.coinbase_size);
+        sha256d(merkle_root, sctx->job.coinbase, (int)sctx->job.coinbase_size);
 
         for (i = 0; i < sctx->job.merkle_count; i++) {
             memcpy(merkle_root + 32, sctx->job.merkle[i], 32);
-            if (opt_algo == ALGO_HEAVY || opt_algo == ALGO_MJOLLNIR)
-                heavycoin_hash(merkle_root, merkle_root, 64);
-            else
-                sha256d(merkle_root, merkle_root, 64);
+            sha256d(merkle_root, merkle_root, 64);
         }
         
         /* Increment extranonce2 */
@@ -1067,27 +1043,8 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
             work->data[9 + i] = be32dec((uint32_t *)merkle_root + i);
         work->data[17] = le32dec(sctx->job.ntime);
         work->data[18] = le32dec(sctx->job.nbits);
-        if (opt_algo == ALGO_MJOLLNIR)
-        {
-            for (i = 0; i < 20; i++)
-                work->data[i] = be32dec((uint32_t *)&work->data[i]);
-        }
-
         work->data[20] = 0x80000000;
-        work->data[31] = (opt_algo == ALGO_MJOLLNIR) ? 0x000002A0 : 0x00000280;
-
-        // HeavyCoin
-        if (opt_algo == ALGO_HEAVY) {
-            uint16_t *ext;
-            work->maxvote = 1024;
-            ext = (uint16_t*)(&work->data[20]);
-            ext[0] = opt_vote;
-            ext[1] = be16dec(sctx->job.nreward);
-
-            for (i = 0; i < 20; i++)
-                work->data[i] = be32dec((uint32_t *)&work->data[i]);
-        }
-        //
+        work->data[31] = 0x00000280;
 
         pthread_mutex_unlock(&sctx->work_lock);
 
@@ -1098,12 +1055,7 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
             free(xnonce2str);
         }
 
-        if (opt_algo == ALGO_JACKPOT)
-            diff_to_target(work->target, sctx->job.diff / (65536.0 * opt_difficulty));
-        else if (opt_algo == ALGO_FUGUE256 || opt_algo == ALGO_GROESTL)
-            diff_to_target(work->target, sctx->job.diff / (256.0 * opt_difficulty));
-        else
-            diff_to_target(work->target, sctx->job.diff / opt_difficulty);
+        diff_to_target(work->target, sctx->job.diff / opt_difficulty);
     }
 }
 
@@ -1218,72 +1170,8 @@ static void *miner_thread(void *userdata)
 		gettimeofday(&tv_start, NULL);
 
 		/* scan nonces for a proof-of-work hash */
-		switch (opt_algo) {
-
-		case ALGO_HEAVY:
-			rc = scanhash_heavy(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done, work.maxvote, HEAVYCOIN_BLKHDR_SZ);
-			break;
-
-		case ALGO_MJOLLNIR:
-			rc = scanhash_heavy(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done, 0, MNR_BLKHDR_SZ);
-			break;
-
-		case ALGO_FUGUE256:
-			rc = scanhash_fugue256(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
-			break;
-
-		case ALGO_GROESTL:
-			rc = scanhash_groestlcoin(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
-			break;
-
-		case ALGO_MYR_GR:
-			rc = scanhash_myriad(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
-			break;
-
-		case ALGO_JACKPOT:
-			rc = scanhash_jackpot(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
-			break;
-
-		case ALGO_QUARK:
-			rc = scanhash_quark(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
-			break;
-
-		case ALGO_ANIME:
-			rc = scanhash_anime(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
-			break;
-
-		case ALGO_NIST5:
-			rc = scanhash_nist5(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
-			break;
-
-		case ALGO_X11:
-			rc = scanhash_x11(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
-			break;
-
-		case ALGO_X13:
-			rc = scanhash_x13(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
-			break;
-
-		case ALGO_CRYPTONIGHT:
-			rc = scanhash_cryptonight(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
-			break;
-
-		default:
-			/* should never happen */
-			goto out;
-		}
+        rc = scanhash_cryptonight(thr_id, work.data, work.target,
+                              max_nonce, &hashes_done);
 
 //        if (opt_benchmark)
 //            if (++rounds == 1) exit(0);
@@ -1631,15 +1519,7 @@ static void parse_arg (int key, char *arg)
 
 	switch(key) {
 	case 'a':
-		for (i = 0; i < ARRAY_SIZE(algo_names); i++) {
-			if (algo_names[i] &&
-			    !strcmp(arg, algo_names[i])) {
-				opt_algo = (sha256_algos)i;
-				break;
-			}
-		}
-		if (i == ARRAY_SIZE(algo_names))
-			show_usage_and_exit(1);
+        applog(LOG_INFO, "Ignoring algo switch, this program does only cryptonight now.");
 		break;
 	case 'B':
 		opt_background = true;
@@ -1703,10 +1583,6 @@ static void parse_arg (int key, char *arg)
 		opt_n_threads = v;
 		break;
 	case 'v':
-		v = atoi(arg);
-		if (v < 0 || v > 1024)	/* sanity check */
-			show_usage_and_exit(1);
-		opt_vote = (uint16_t)v;
 		break;
 	case 'm':
 		opt_trust_pool = true;
@@ -1952,7 +1828,7 @@ static void signal_handler(int sig)
 }
 #endif
 
-#define PROGRAM_VERSION "1.1"
+#define PROGRAM_VERSION "0.13"
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;
@@ -1963,15 +1839,19 @@ int main(int argc, char *argv[])
 	SYSTEM_INFO sysinfo;
 #endif
 
-	printf("     *** ccMiner for nVidia GPUs by Christian Buchner and Christian H. ***\n");
-	printf("\t             This is version "PROGRAM_VERSION" (beta)\n");
-	printf("\t  based on pooler-cpuminer 2.3.2 (c) 2010 Jeff Garzik, 2012 pooler\n");
-	printf("\t  based on pooler-cpuminer extension for HVC from\n\t       https://github.com/heavycoin/cpuminer-heavycoin\n");
-	printf("\t\t\tand\n\t       http://hvc.1gh.com/\n");
-	printf("\tCuda additions Copyright 2014 Christian Buchner, Christian H.\n");
-	printf("\t  LTC donation address: LKS1WDKGED647msBQfLBHV3Ls8sveGncnm\n");
-	printf("\t  BTC donation address: 16hJF5mceSojnTD3ZTUDqdRhDyPJzoRakM\n");
-	printf("\t  YAC donation address: Y87sptDEcpLkLeAuex6qZioDbvy1qXZEj4\n");
+	printf("    *** ccminer-cryptonight for nVidia GPUs by tsiv ***\n");
+	printf(" based on ccMiner by Christian Buchner and Christian H.\n");
+	printf(" based on cpuminer-multi by LucasJones\n");
+	printf(" based on pooler-cpuminer 2.3.2 (c) 2010 Jeff Garzik, 2012 pooler\n");
+	printf("    BTC donation address: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs\n");
+	printf("    DRK donation address: XrHp267JNTVdw5P3dsBpqYfgTpWnzoESPQ\n");
+	printf("    JPC donation address: Jb9hFeBgakCXvM5u27rTZoYR9j13JGmuc2\n");
+	printf("    VTC donation address: VwYsZFPb6KMeWuP4voiS9H1kqxcU9kGbsw\n");
+	printf("    XMR donation address: \n");
+	printf("      (man these are long... single address, split on two lines)\n");
+	printf("      42uasNqYPnSaG3TwRtTeVbQ4aRY3n9jY6VXX3mfgerWt4ohD\n");
+	printf("      QLVaBPv3cYGKDXasTUVuLvhxetcuS16ynt85czQ48mbSrWX\n");
+	printf("-----------------------------------------------------------------\n");
 
 	rpc_user = strdup("");
 	rpc_pass = strdup("");

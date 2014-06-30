@@ -1,8 +1,25 @@
-ccminer
+ccminer-cryptonight
 
-Christian Buchner's &amp; Christian H.'s CUDA miner project
+A modification of Christian Buchner's &amp; Christian H.'s
+ccminer project by tsiv for Cryptonight mining.
 
-Modified by tsiv to include support for cryptonight mining
+June 30th 2014
+--------------
+
+I've keep getting asked for donation addresses, here are some
+for wallets that I currently have up. Will set up other wallets
+on request, in case you feel like donating but don't hold any
+of the currencies I currently have addresses for.
+
+BTC: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs
+DRK: XrHp267JNTVdw5P3dsBpqYfgTpWnzoESPQ
+JPC: Jb9hFeBgakCXvM5u27rTZoYR9j13JGmuc2
+VTC: VwYsZFPb6KMeWuP4voiS9H1kqxcU9kGbsw
+XMR: 42uasNqYPnSaG3TwRtTeVbQ4aRY3n9jY6VXX3mfgerWt4ohDQLVaBPv3cYGKDXasTUVuLvhxetcuS16ynt85czQ48mbSrWX
+
+In other news, I just yanked out the code for other alrogithms.
+This is now a cryptonight-only miner.
+
 
 June 24th 2014
 --------------
