@@ -3,6 +3,18 @@ ccminer-cryptonight
 A modification of Christian Buchner's &amp; Christian H.'s
 ccminer project by tsiv for Cryptonight mining.
 
+July 5th 2014
+-------------
+
+Massive improvement to interactivity on Windows, should also further help with TDR issues.
+Introducing the --bfactor and --bsleep command line parameters allows for control over
+execution of the biggest resource hog of the algorithm. Use bfactor to determine how
+many parts the kernel is split into and bsleep to insert a short delay between the kernel
+launches. The defaults are no splitting / no sleep for Linux and split into 64 (bfactor 6)
+parts / sleep 100 microseconds between launches for Windows. These defaults seem to work
+wonders on my 750 Ti on Windows 7, once again you may want to tweak according to your 
+environment.
+
 June 30th 2014
 --------------
 

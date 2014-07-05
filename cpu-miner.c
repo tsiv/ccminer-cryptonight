@@ -179,7 +179,16 @@ uint16_t opt_vote = 9999;
 static int num_processors;
 int device_map[8] = {0,1,2,3,4,5,6,7}; // CB
 char *device_name[8]; // CB
+int device_bfactor[8];
+int device_bsleep[8];
 int device_config[8][2];
+#ifdef WIN32
+static int default_bfactor = 6;
+static int default_bsleep = 100;
+#else
+static int default_bfactor = 0;
+static int default_bsleep = 0;
+#endif
 static char *rpc_url;
 static char *rpc_userpass;
 static char *rpc_user, *rpc_pass;
@@ -239,6 +248,15 @@ Options:\n\
                         the remaining devices. If you don't need to vary the\n\
                         value between devices, you can just enter a single value\n\
                         and it will be used for all devices. (default: 8x40)\n\
+      --bfactor=X       Enables running the Cryptonight kernel in smaller pieces.\n\
+                        The kernel will be run in 2^X parts according to bfactor,\n\
+                        with a small pause between parts, specified by --bsleep.\n\
+                        This is a per-device setting like the launch config.\n\
+                        (default: 0 (no splitting) on Linux, 6 (64 parts) on Windows)\n\
+      --bsleep=X        Insert a delay of X microseconds between kernel launches.\n\
+                        Use in combination with --bfactor to mitigate the lag\n\
+                        when running on your primary GPU.\n\
+                        This is a per-device setting like the launch config.\n\
   -m, --trust-pool      trust the max block reward vote (maxvote) sent by the pool\n\
   -o, --url=URL         URL of mining server\n\
   -O, --userpass=U:P    username:password pair for mining server\n\
@@ -314,6 +332,8 @@ static struct option const options[] = {
 	{ "devices", 1, NULL, 'd' },
 	{ "diff", 1, NULL, 'f' },
 	{ "launch", 1, NULL, 'l' },
+	{ "bfactor", 1, NULL, 1008 },
+	{ "bsleep", 1, NULL, 1009 },
 	{ 0, 0, 0, 0 }
 };
 
@@ -1732,6 +1752,42 @@ static void parse_arg (int key, char *arg)
             }
         }
         break;
+	case 1008:
+        {
+            p = strtok(arg, ",");
+            if( p == NULL ) show_usage_and_exit(1);
+            int last;
+            i = 0;
+            while( p != NULL && i < 8 ) {
+                device_bfactor[i++] = last = atoi(p);
+                if( last < 0 || last > 10 ) {
+                    applog(LOG_ERR, "Valid range for --bfactor is 0-10");
+                    exit(1);
+                }
+                p = strtok(NULL, ",");
+            }
+            while (i < 8) {
+                device_bfactor[i++] = last;
+            }
+        }
+        break;
+	case 1009:
+            p = strtok(arg, ",");
+            if( p == NULL ) show_usage_and_exit(1);
+            int last;
+            i = 0;
+            while( p != NULL && i < 8 ) {
+                device_bsleep[i++] = last = atoi(p);
+                if( last < 0 || last > 1000000 ) {
+                    applog(LOG_ERR, "Valid range for --bsleep is 0-1000000");
+                    exit(1);
+                }
+                p = strtok(NULL, ",");
+            }
+            while (i < 8) {
+                device_bsleep[i++] = last;
+            }
+        break;
 
 	case 'V':
 		show_version_and_exit();
@@ -1862,6 +1918,8 @@ int main(int argc, char *argv[])
 	for(i = 0; i < 8; i++) {
         device_config[i][0] = opt_cn_blocks;
         device_config[i][1] = opt_cn_threads;
+        device_bfactor[i] = default_bfactor;
+        device_bsleep[i] = default_bsleep;
     }
 
     /* parse command line */

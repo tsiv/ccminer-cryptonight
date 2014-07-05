@@ -61,6 +61,15 @@ most of their command line interface and options.
                        value between devices, you can just enter a single
 		       value and it will be used for all devices.
 		       (default: 8x40)
+     --bfactor=X       Enables running the Cryptonight kernel in smaller pieces.\n\
+                       The kernel will be run in 2^X parts according to bfactor,\n\
+                       with a small pause between parts, specified by --bsleep.\n\
+                       This is a per-device setting like the launch config.\n\
+                       (default: 0 (no splitting) on Linux, 6 (64 parts) on Windows)\n\
+     --bsleep=X        Insert a delay of X microseconds between kernel launches.\n\
+                       Use in combination with --bfactor to mitigate the lag\n\
+                       when running on your primary GPU.\n\
+                       This is a per-device setting like the launch config.\n\
  -f, --diff            Divide difficulty by this factor (std is 1) 
  -o, --url=URL         URL of mining server (default: " DEF_RPC_URL ")
  -O, --userpass=U:P    username:password pair for mining server

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/time.h>
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "cryptonight.h"
@@ -9,31 +10,15 @@
 #include <unistd.h>
 #endif
 
-#include "cuda_cryptonight_aes.cu"
+extern int device_bfactor[8];
+extern int device_bsleep[8];
 
-#define hi_dword(x) (x >> 32)
-#define lo_dword(x) (x & 0xFFFFFFFF)
+#include "cuda_cryptonight_aes.cu"
 
 __device__ __forceinline__ uint64_t cuda_mul128(uint64_t multiplier, uint64_t multiplicand, uint64_t* product_hi)
 {
-  uint64_t a = hi_dword(multiplier);
-  uint64_t b = lo_dword(multiplier);
-  uint64_t c = hi_dword(multiplicand);
-  uint64_t d = lo_dword(multiplicand);
-
-  uint64_t ac = a * c;
-  uint64_t ad = a * d;
-  uint64_t bc = b * c;
-  uint64_t bd = b * d;
-
-  uint64_t adbc = ad + bc;
-  uint64_t adbc_carry = adbc < ad ? 1 : 0;
-
-  uint64_t product_lo = bd + (adbc << 32);
-  uint64_t product_lo_carry = product_lo < bd ? 1 : 0;
-  *product_hi = ac + (adbc >> 32) + (adbc_carry << 32) + product_lo_carry;
-
-  return product_lo;
+    *product_hi = __umul64hi(multiplier, multiplicand);
+    return(multiplier * multiplicand);
 }
 
 __global__ void cryptonight_core_gpu_phase1(int threads, uint8_t *d_long_state, struct cryptonight_gpu_ctx *d_ctx)
@@ -50,6 +35,7 @@ __global__ void cryptonight_core_gpu_phase1(int threads, uint8_t *d_long_state, 
     if (thread < threads)
     {
         int i, j;
+        int start = 0, end = MEMORY;
         uint8_t *long_state = &d_long_state[MEMORY * thread];
         uint32_t *ls32;
         struct cryptonight_gpu_ctx *ctx = &d_ctx[thread];
@@ -61,7 +47,7 @@ __global__ void cryptonight_core_gpu_phase1(int threads, uint8_t *d_long_state, 
         for( i = 0; i < 4; i++ )
             text[i] = state[i];
 
-        for (i = 0; i < MEMORY; i += INIT_SIZE_BYTE) {
+        for (i = start; i < end; i += INIT_SIZE_BYTE) {
 
             ls32 = (uint32_t *)&long_state[i];
 
@@ -73,7 +59,7 @@ __global__ void cryptonight_core_gpu_phase1(int threads, uint8_t *d_long_state, 
     }
 }
 
-__global__ void cryptonight_core_gpu_phase2(int threads, uint8_t *d_long_state, struct cryptonight_gpu_ctx *d_ctx)
+__global__ void cryptonight_core_gpu_phase2(int threads, int partcount, int partidx, uint8_t *d_long_state, struct cryptonight_gpu_ctx *d_ctx)
 {
 	__shared__ uint32_t sharedMemory[1024];
 
@@ -86,6 +72,7 @@ __global__ void cryptonight_core_gpu_phase2(int threads, uint8_t *d_long_state, 
     if (thread < threads)
     {
         int i, j;
+        int start = 0, end = ITER / 4;
         uint8_t *long_state = &d_long_state[MEMORY * thread];
         struct cryptonight_gpu_ctx *ctx = &d_ctx[thread];
         uint32_t a[4], b[4], c[4];
@@ -93,16 +80,29 @@ __global__ void cryptonight_core_gpu_phase2(int threads, uint8_t *d_long_state, 
         MEMCPY8(a, ctx->a, 2);
         MEMCPY8(b, ctx->b, 2);
 
-        for (i = 0; i < ITER / 4; ++i) {
+        if( partcount > 1 ) {
+            
+            int batchsize = (ITER / 4) / partcount;
+            start = partidx * batchsize;
+            end = start + batchsize;
+        }
 
-            j = E2I(a) * AES_BLOCK_SIZE;
+        for (i = start; i < end; ++i) {
+
+            j = ((uint32_t *)a)[0] & 0x1FFFF0;
             cn_aes_single_round(sharedMemory, &long_state[j], c, a);
             XOR_BLOCKS_DST(c, b, &long_state[j]);
-            MUL_SUM_XOR_DST(c, a, &long_state[E2I(c) * AES_BLOCK_SIZE]);
-            j = E2I(a) * AES_BLOCK_SIZE;
+            MUL_SUM_XOR_DST(c, a, &long_state[((uint32_t *)c)[0] & 0x1FFFF0]);
+            j = ((uint32_t *)a)[0] & 0x1FFFF0;
             cn_aes_single_round(sharedMemory, &long_state[j], b, a);
             XOR_BLOCKS_DST(b, c, &long_state[j]);
-            MUL_SUM_XOR_DST(b, a, &long_state[E2I(b) * AES_BLOCK_SIZE]);
+            MUL_SUM_XOR_DST(b, a, &long_state[((uint32_t *)b)[0] & 0x1FFFF0]);
+        }
+        
+        if( partcount > 1 ) {
+
+            MEMCPY8(ctx->a, a, 2);
+            MEMCPY8(ctx->b, b, 2);
         }
     }
 }
@@ -121,6 +121,7 @@ __global__ void cryptonight_core_gpu_phase3(int threads, uint8_t *d_long_state, 
     if (thread < threads)
     {
         int i, j;
+        int start = 0, end = MEMORY;
         uint8_t *long_state = &d_long_state[MEMORY * thread];
         uint32_t *ls32;
         struct cryptonight_gpu_ctx *ctx = &d_ctx[thread];
@@ -132,7 +133,7 @@ __global__ void cryptonight_core_gpu_phase3(int threads, uint8_t *d_long_state, 
         for( i = 0; i < 4; i++ )
             text[i] = state[i];
 
-        for (i = 0; i < MEMORY; i += INIT_SIZE_BYTE) {
+        for (i = start; i < end; i += INIT_SIZE_BYTE) {
 
             ls32 = (uint32_t *)&long_state[i];
 
@@ -159,12 +160,17 @@ __host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uin
     dim3 block8(threads << 3);
 
     size_t shared_size = 1024;
+    int i, partcount = 1 << device_bfactor[thr_id];
 
     cryptonight_core_gpu_phase1<<<grid, block8, shared_size>>>(blocks*threads, d_long_state, d_ctx);
     cudaDeviceSynchronize();
+    if( partcount > 1 ) usleep(device_bsleep[thr_id]);
 
-    cryptonight_core_gpu_phase2<<<grid, block, shared_size>>>(blocks*threads, d_long_state, d_ctx);
-    cudaDeviceSynchronize();
+    for( i = 0; i < partcount; i++ ) {
+        cryptonight_core_gpu_phase2<<<grid, block, shared_size>>>(blocks*threads, partcount, i, d_long_state, d_ctx);
+        cudaDeviceSynchronize();
+        if( partcount > 1 ) usleep(device_bsleep[thr_id]);
+    }
 
     cryptonight_core_gpu_phase3<<<grid, block8, shared_size>>>(blocks*threads, d_long_state, d_ctx);
     cudaDeviceSynchronize();

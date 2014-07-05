@@ -122,6 +122,7 @@ struct cryptonight_gpu_ctx {
     uint32_t b[4];
     uint32_t key1[40];
     uint32_t key2[40];
+    uint32_t text[32];
 };
 
 void hash_permutation(union hash_state *state);
