@@ -12,8 +12,28 @@ const uint64_t h_keccakf_rndc[24] =
     0x8000000000008080, 0x0000000080000001, 0x8000000080008008
 };
 
-#define rotl64_1(x, y) ((x) << (y) | ((x) >> (64 - (y))))
-#define rotl64_2(x, y) rotl64_1(((x) >> 32) | ((x) << 32), (y))  
+#if __CUDA_ARCH__ >= 350
+	__forceinline__ __device__ uint64_t cuda_rotl64(const uint64_t value, const int offset)
+	{
+		uint2 result;
+		if(offset >= 32)
+		{
+			asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
+			asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
+		}
+		else
+		{
+			asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
+			asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
+		}
+		return  __double_as_longlong(__hiloint2double(result.y, result.x));
+	}
+	#define rotl64_1(x, y) (cuda_rotl64((x), (y)))
+#else
+	#define rotl64_1(x, y) ((x) << (y) | ((x) >> (64 - (y))))
+#endif
+
+#define rotl64_2(x, y) rotl64_1(((x) >> 32) | ((x) << 32), (y))
 #define bitselect(a, b, c) ((a) ^ ((c) & ((b) ^ (a))))
 
 __device__ __forceinline__ void cn_keccakf(uint64_t *s)
