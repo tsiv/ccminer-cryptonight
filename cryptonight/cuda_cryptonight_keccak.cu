@@ -81,6 +81,6 @@ __device__ __forceinline__ void cn_keccak(const uint8_t * __restrict__ in, uint8
 	
 	cn_keccakf(st);
 	
-	MEMCPY4(md, st, 50);
+	MEMCPY8(md, st, 25);
 	return;
 }
