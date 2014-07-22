@@ -86,7 +86,7 @@ __global__ void cryptonight_extra_gpu_prepare(int threads, uint32_t *d_input, ui
         MEMCPY4(input, d_input, 19);
         *((uint32_t *)(((char *)input) + 39)) = startNonce + thread;
         
-        cryptonight_keccak((uint8_t*)input, 76, (uint8_t*)ctx.state, 200);
+        cn_keccak((uint8_t *)input, (uint8_t *)ctx.state);
         cryptonight_aes_set_key(ctx.key1, ctx.state);
         cryptonight_aes_set_key(ctx.key2, ctx.state+8);
         XOR_BLOCKS_DST(ctx.state, ctx.state+8, ctx.a);
@@ -109,7 +109,7 @@ __global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, ui
         uint32_t state[50];
 
         MEMCPY8(state, &ctx->state, 25);
-        cryptonight_keccakf((uint64_t*)state, 24);
+        cn_keccakf((uint64_t *)state);
 
         switch( ((uint8_t *)state)[0] & 0x03 ) {
             case 0:
@@ -165,8 +165,6 @@ __host__ void cryptonight_extra_cpu_init(int thr_id)
     cudaMalloc(&d_target[thr_id], 8*sizeof(uint32_t)); 
     cudaMalloc(&d_resultNonce[thr_id], sizeof(uint32_t)); 
     cudaMemcpyToSymbol(keccakf_rndc, h_keccakf_rndc, sizeof(h_keccakf_rndc), 0, cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol(keccakf_rotc, h_keccakf_rotc, sizeof(h_keccakf_rotc), 0, cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol(keccakf_piln, h_keccakf_piln, sizeof(h_keccakf_piln), 0, cudaMemcpyHostToDevice);
 	cudaMemcpyToSymbol(d_sub_byte, sub_byte, sizeof(sub_byte), 0, cudaMemcpyHostToDevice);
 	cudaMemcpyToSymbol(d_blake_sigma, h_blake_sigma, sizeof(h_blake_sigma), 0, cudaMemcpyHostToDevice);
 	cudaMemcpyToSymbol(d_blake_cst, h_blake_cst, sizeof(h_blake_cst), 0, cudaMemcpyHostToDevice);
