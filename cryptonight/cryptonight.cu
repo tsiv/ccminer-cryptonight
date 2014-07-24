@@ -13,6 +13,7 @@ extern "C"
 }
 
 extern char *device_name[8];
+extern int device_mpcount[8];
 extern int device_map[8];
 extern int device_config[8][2];
 
@@ -61,6 +62,7 @@ extern "C" void cuda_devicenames()
         cudaGetDeviceProperties(&props, device_map[i]);
 
         device_name[i] = strdup(props.name);
+        device_mpcount[i] = props.multiProcessorCount;
     }
 }
 

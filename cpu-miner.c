@@ -179,6 +179,7 @@ uint16_t opt_vote = 9999;
 static int num_processors;
 int device_map[8] = {0,1,2,3,4,5,6,7}; // CB
 char *device_name[8]; // CB
+int device_mpcount[8];
 int device_bfactor[8];
 int device_bsleep[8];
 int device_config[8][2];
@@ -332,6 +333,7 @@ static struct option const options[] = {
 	{ "devices", 1, NULL, 'd' },
 	{ "diff", 1, NULL, 'f' },
 	{ "launch", 1, NULL, 'l' },
+	{ "launch-config", 1, NULL, 'l' },
 	{ "bfactor", 1, NULL, 1008 },
 	{ "bsleep", 1, NULL, 1009 },
 	{ 0, 0, 0, 0 }
@@ -1110,11 +1112,12 @@ static void *miner_thread(void *userdata)
 		affine_to_cpu(thr_id, thr_id % num_processors);
 	}
 
-    if( opt_algo == ALGO_CRYPTONIGHT ) {
-
-        applog(LOG_INFO, "GPU #%d: %s, using %d blocks of %d threads",
-            device_map[thr_id], device_name[thr_id], device_config[thr_id][0], device_config[thr_id][1]);
-    }
+    applog(LOG_INFO, "GPU #%d: %s (%d SMX), using %d blocks of %d threads",
+        device_map[thr_id], device_name[thr_id], device_mpcount[thr_id], device_config[thr_id][0], device_config[thr_id][1]);
+    
+    if( device_config[thr_id][0] % device_mpcount[thr_id] )
+        applog(LOG_INFO, "GPU #%d: Warning: block count %d is not a multiple of SMX count %d.",
+            device_map[thr_id], device_config[thr_id][0], device_mpcount[thr_id]);
 
     uint32_t *nonceptr = (uint32_t*) (((char*)work.data) + (jsonrpc_2 ? 39 : 76));
 
