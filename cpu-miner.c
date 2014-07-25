@@ -56,7 +56,7 @@ extern "C"
 {
 #endif
 int cuda_num_devices();
-void cuda_devicenames();
+void cuda_deviceinfo();
 int cuda_finddevice(char *name);
 #ifdef __cplusplus
 }
@@ -179,6 +179,7 @@ uint16_t opt_vote = 9999;
 static int num_processors;
 int device_map[8] = {0,1,2,3,4,5,6,7}; // CB
 char *device_name[8]; // CB
+int device_arch[8][2];
 int device_mpcount[8];
 int device_bfactor[8];
 int device_bsleep[8];
@@ -1928,7 +1929,7 @@ int main(int argc, char *argv[])
     /* parse command line */
 	parse_cmdline(argc, argv);
 
-	cuda_devicenames();
+	cuda_deviceinfo();
 
     if(opt_algo == ALGO_CRYPTONIGHT) {
         jsonrpc_2 = true;

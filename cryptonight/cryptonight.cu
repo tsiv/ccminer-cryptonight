@@ -13,6 +13,7 @@ extern "C"
 }
 
 extern char *device_name[8];
+extern int device_arch[8][2];
 extern int device_mpcount[8];
 extern int device_map[8];
 extern int device_config[8][2];
@@ -45,7 +46,7 @@ extern "C" int cuda_num_devices()
     return GPU_N;
 }
 
-extern "C" void cuda_devicenames()
+extern "C" void cuda_deviceinfo()
 {
     cudaError_t err;
     int GPU_N;
@@ -63,6 +64,8 @@ extern "C" void cuda_devicenames()
 
         device_name[i] = strdup(props.name);
         device_mpcount[i] = props.multiProcessorCount;
+        device_arch[i][0] = props.major;
+        device_arch[i][1] = props.minor;
     }
 }
 

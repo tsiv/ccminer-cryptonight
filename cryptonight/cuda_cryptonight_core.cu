@@ -10,6 +10,7 @@
 #include <unistd.h>
 #endif
 
+extern int device_arch[8][2];
 extern int device_bfactor[8];
 extern int device_bsleep[8];
 
@@ -163,9 +164,7 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
 
 #else // __CUDA_ARCH__ < 300
 
-    // plain old single thread per hash implementation, but the kernel is still launched with 4 threads per hash
-    // have only one for the four "subthreads" actually do work
-    if (thread < threads && (threadIdx.x & 3) == 0)
+    if (thread < threads)
     {
         int i, j;
         int batchsize = ITER >> (2+bfactor);
@@ -262,7 +261,7 @@ __host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uin
     if( partcount > 1 ) usleep(device_bsleep[thr_id]);
 
     for( i = 0; i < partcount; i++ ) {
-        cryptonight_core_gpu_phase2<<<grid, block4, shared_size>>>(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx);
+        cryptonight_core_gpu_phase2<<<grid, (device_arch[thr_id][0] >= 3 ? block4 : block), shared_size>>>(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx);
         cudaDeviceSynchronize();
         if( partcount > 1 ) usleep(device_bsleep[thr_id]);
     }
