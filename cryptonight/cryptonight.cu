@@ -104,13 +104,13 @@ extern "C" int cuda_finddevice(char *name)
     return -1;
 }
 
-static uint8_t *d_long_state[8];
+static uint32_t *d_long_state[8];
 static struct cryptonight_gpu_ctx *d_ctx[8];
 
 extern bool opt_benchmark;
 
 extern void cryptonight_core_cpu_init(int thr_id, int threads);
-extern void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint8_t *d_long_state, struct cryptonight_gpu_ctx *d_ctx);
+extern void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, struct cryptonight_gpu_ctx *d_ctx);
 
 extern void cryptonight_extra_cpu_setData(int thr_id, const void *data, const void *pTargetIn);
 extern void cryptonight_extra_cpu_init(int thr_id);
