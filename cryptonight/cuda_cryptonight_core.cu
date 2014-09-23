@@ -56,10 +56,9 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
 
 	__syncthreads();
 
-    int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 2;
-
 #if __CUDA_ARCH__ >= 300
 
+    int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 2;
     int sub = threadIdx.x & 3;
 
     if (thread < threads)
@@ -148,6 +147,8 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
     }
 
 #else // __CUDA_ARCH__ < 300
+
+    int thread = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (thread < threads)
     {
