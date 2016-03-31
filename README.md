@@ -3,6 +3,12 @@ ccminer-cryptonight
 A modification of Christian Buchner's &amp; Christian H.'s
 ccminer project by tsiv for Cryptonight mining.
 
+March 31st 2016
+---------------
+
+Support for solo mining with bitmonerod v0.9.3.1 or newer. Specify your url
+as "daemon+tcp://<host>:<port>/json_rpc"
+
 July 5th 2014
 -------------
 

@@ -253,6 +253,8 @@ struct work {
 	char job_id[128];
 	size_t xnonce2_len;
 	unsigned char xnonce2[32];
+    size_t xnonce3_len;
+    char *xnonce3;
 };
 
 struct stratum_job {
