@@ -1493,7 +1493,15 @@ static void *daemon_thread(void *userdata) {
                 }
             }
             json_decref(val);
+#ifdef _WIN32
+            { struct _timeb now;
+            _ftime(&now);
+            ts.tv_nsec = now.millitm * 1000000;
+            ts.tv_sec = now.time;
+            }
+#else
             clock_gettime(CLOCK_REALTIME, &ts);
+#endif
             ts.tv_sec += delay;
 again:
             qtime = (time_t)tq_pop(mythr->q, &ts);
