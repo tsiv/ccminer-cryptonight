@@ -687,7 +687,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 			cryptonight_hash((void *)hash, (const void *)work->data, 76);
 			char *hashhex = bin2hex((const unsigned char *)hash, 32);
 			snprintf(s, JSON_BUF_LEN,
-							 "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}\r\n",
+							 "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}",
 							 rpc2_id, work->job_id, noncestr, hashhex);
 			free(hashhex);
 		}
@@ -735,7 +735,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 			cryptonight_hash((void *)hash, (const void *)work->data, 76);
 			char *hashhex = bin2hex((const unsigned char *)hash, 32);
 			snprintf(s, JSON_BUF_LEN,
-							 "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}\r\n",
+							 "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}",
 							 rpc2_id, work->job_id, noncestr, hashhex);
 			free(noncestr);
 			free(hashhex);
@@ -1005,7 +1005,7 @@ static void *workio_thread(void *userdata)
 		return NULL;
 	}
 
-	if(!have_stratum)
+	if(!have_stratum && !opt_benchmark)
 	{
 		ok = workio_login(curl);
 	}
