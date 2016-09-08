@@ -1,19 +1,19 @@
 
-ccminer-cryptonight, a ccminer mod by tsiv
+ccminer-cryptonight, a ccminer mod by tsiv and KlausT
 -------------------------------------------------------------
 
 ***************************************************************
 If you find this tool useful and like to support its continued 
           development, then consider a donation.
 
-   BTC donation address: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs
-   DRK donation address: XrHp267JNTVdw5P3dsBpqYfgTpWnzoESPQ
-   JPC donation address: Jb9hFeBgakCXvM5u27rTZoYR9j13JGmuc2
-   VTC donation address: VwYsZFPb6KMeWuP4voiS9H1kqxcU9kGbsw
-   XMR donation address: 
-     (man these are long... single address, split on two lines)
-     42uasNqYPnSaG3TwRtTeVbQ4aRY3n9jY6VXX3mfgerWt4ohD
-     QLVaBPv3cYGKDXasTUVuLvhxetcuS16ynt85czQ48mbSrWX
+KlausT's BTC donation address: 1QHH2dibyYL5iyMDk3UN4PVvFVtrWD8QKp
+
+tsiv's BTC donation address: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs
+tsiv's DRK donation address: XrHp267JNTVdw5P3dsBpqYfgTpWnzoESPQ
+tsiv's JPC donation address: Jb9hFeBgakCXvM5u27rTZoYR9j13JGmuc2
+tsiv's VTC donation address: VwYsZFPb6KMeWuP4voiS9H1kqxcU9kGbsw
+tsiv's XMR donation address: 
+42uasNqYPnSaG3TwRtTeVbQ4aRY3n9jY6VXX3mfgerWt4ohDQLVaBPv3cYGKDXasTUVuLvhxetcuS16ynt85czQ48mbSrWX
 
 Don't forget to support the original ccminer authors
 Christian Buchner and Christian H. This mod would not be
@@ -100,6 +100,8 @@ most of their command line interface and options.
 >>> AUTHORS <<<
 
 Notable contributors to this application are:
+KlausT:
+- various fixes and optimizations
 
 tsiv: 
 - CUDA implementation for the Cryptonight algorithm.

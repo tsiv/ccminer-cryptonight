@@ -1,12 +1,12 @@
 /*
- * Copyright 2010 Jeff Garzik
- * Copyright 2012-2014 pooler
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 2 of the License, or (at your option)
- * any later version.  See COPYING for more details.
- */
+* Copyright 2010 Jeff Garzik
+* Copyright 2012-2014 pooler
+*
+* This program is free software; you can redistribute it and/or modify it
+* under the terms of the GNU General Public License as published by the Free
+* Software Foundation; either version 2 of the License, or (at your option)
+* any later version.  See COPYING for more details.
+*/
 
 #define _GNU_SOURCE
 #include "cpuminer-config.h"
@@ -35,29 +35,34 @@
 #include "miner.h"
 #include "elist.h"
 
-struct data_buffer {
+struct data_buffer
+{
 	void		*buf;
 	size_t		len;
 };
 
-struct upload_buffer {
+struct upload_buffer
+{
 	const void	*buf;
 	size_t		len;
 	size_t		pos;
 };
 
-struct header_info {
+struct header_info
+{
 	char		*lp_path;
 	char		*reason;
 	char		*stratum_url;
 };
 
-struct tq_ent {
+struct tq_ent
+{
 	void			*data;
 	struct list_head	q_node;
 };
 
-struct thread_q {
+struct thread_q
+{
 	struct list_head	q;
 
 	bool frozen;
@@ -73,22 +78,26 @@ void applog(int prio, const char *fmt, ...)
 	va_start(ap, fmt);
 
 #ifdef HAVE_SYSLOG_H
-	if (use_syslog) {
+	if(use_syslog)
+	{
 		va_list ap2;
 		char *buf;
 		int len;
-		
+
 		va_copy(ap2, ap);
 		len = vsnprintf(NULL, 0, fmt, ap2) + 1;
 		va_end(ap2);
 		buf = alloca(len);
-		if (vsnprintf(buf, len, fmt, ap) >= 0)
+		if(vsnprintf(buf, len, fmt, ap) >= 0)
 			syslog(prio, "%s", buf);
 	}
 #else
-	if (0) {}
+	if(0)
+	{
+	}
 #endif
-	else {
+	else
+	{
 		char *f;
 		int len;
 		time_t now;
@@ -104,13 +113,13 @@ void applog(int prio, const char *fmt, ...)
 		len = (int)(40 + strlen(fmt) + 2);
 		f = (char*)alloca(len);
 		sprintf(f, "[%d-%02d-%02d %02d:%02d:%02d] %s\n",
-			tm.tm_year + 1900,
-			tm.tm_mon + 1,
-			tm.tm_mday,
-			tm.tm_hour,
-			tm.tm_min,
-			tm.tm_sec,
-			fmt);
+						tm.tm_year + 1900,
+						tm.tm_mon + 1,
+						tm.tm_mday,
+						tm.tm_hour,
+						tm.tm_min,
+						tm.tm_sec,
+						fmt);
 		pthread_mutex_lock(&applog_lock);
 		vfprintf(stderr, f, ap);	/* atomic write to stderr */
 		fflush(stderr);
@@ -121,7 +130,7 @@ void applog(int prio, const char *fmt, ...)
 
 static void databuf_free(struct data_buffer *db)
 {
-	if (!db)
+	if(!db)
 		return;
 
 	free(db->buf);
@@ -130,7 +139,7 @@ static void databuf_free(struct data_buffer *db)
 }
 
 static size_t all_data_cb(const void *ptr, size_t size, size_t nmemb,
-			  void *user_data)
+													void *user_data)
 {
 	struct data_buffer *db = (struct data_buffer *)user_data;
 	size_t len = size * nmemb;
@@ -142,7 +151,7 @@ static size_t all_data_cb(const void *ptr, size_t size, size_t nmemb,
 	newlen = oldlen + len;
 
 	newmem = realloc(db->buf, newlen + 1);
-	if (!newmem)
+	if(!newmem)
 		return 0;
 
 	db->buf = newmem;
@@ -154,15 +163,16 @@ static size_t all_data_cb(const void *ptr, size_t size, size_t nmemb,
 }
 
 static size_t upload_data_cb(void *ptr, size_t size, size_t nmemb,
-			     void *user_data)
+														 void *user_data)
 {
 	struct upload_buffer *ub = (struct upload_buffer *)user_data;
 	unsigned int len = (unsigned int)(size * nmemb);
 
-	if (len > ub->len - ub->pos)
+	if(len > ub->len - ub->pos)
 		len = (unsigned int)(ub->len - ub->pos);
 
-	if (len) {
+	if(len)
+	{
 		memcpy(ptr, (char*)ub->buf + ub->pos, len);
 		ub->pos += len;
 	}
@@ -174,19 +184,20 @@ static size_t upload_data_cb(void *ptr, size_t size, size_t nmemb,
 static int seek_data_cb(void *user_data, curl_off_t offset, int origin)
 {
 	struct upload_buffer *ub = (struct upload_buffer *)user_data;
-	
-	switch (origin) {
-	case SEEK_SET:
-		ub->pos = (size_t)offset;
-		break;
-	case SEEK_CUR:
-		ub->pos += (size_t)offset;
-		break;
-	case SEEK_END:
-		ub->pos = ub->len + (size_t)offset;
-		break;
-	default:
-		return 1; /* CURL_SEEKFUNC_FAIL */
+
+	switch(origin)
+	{
+		case SEEK_SET:
+			ub->pos = (size_t)offset;
+			break;
+		case SEEK_CUR:
+			ub->pos += (size_t)offset;
+			break;
+		case SEEK_END:
+			ub->pos = ub->len + (size_t)offset;
+			break;
+		default:
+			return 1; /* CURL_SEEKFUNC_FAIL */
 	}
 
 	return 0; /* CURL_SEEKFUNC_OK */
@@ -202,44 +213,49 @@ static size_t resp_hdr_cb(void *ptr, size_t size, size_t nmemb, void *user_data)
 
 	val = (char*)calloc(1, ptrlen);
 	key = (char*)calloc(1, ptrlen);
-	if (!key || !val)
+	if(!key || !val)
 		goto out;
 
 	tmp = memchr(ptr, ':', ptrlen);
-	if (!tmp || (tmp == ptr))	/* skip empty keys / blanks */
+	if(!tmp || (tmp == ptr))	/* skip empty keys / blanks */
 		goto out;
 	slen = (size_t)((char*)tmp - (char*)ptr);
-	if ((slen + 1) == ptrlen)	/* skip key w/ no value */
+	if((slen + 1) == ptrlen)	/* skip key w/ no value */
 		goto out;
 	memcpy(key, ptr, slen);		/* store & nul term key */
 	key[slen] = 0;
 
 	rem = (char*)ptr + slen + 1;		/* trim value's leading whitespace */
 	remlen = ptrlen - slen - 1;
-	while ((remlen > 0) && (isspace(*rem))) {
+	while((remlen > 0) && (isspace(*rem)))
+	{
 		remlen--;
 		rem++;
 	}
 
 	memcpy(val, rem, remlen);	/* store value, trim trailing ws */
 	val[remlen] = 0;
-	while ((*val) && (isspace(val[strlen(val) - 1]))) {
+	while((*val) && (isspace(val[strlen(val) - 1])))
+	{
 		val[strlen(val) - 1] = 0;
 	}
-	if (!*val)			/* skip blank value */
+	if(!*val)			/* skip blank value */
 		goto out;
 
-	if (!strcasecmp("X-Long-Polling", key)) {
+	if(!strcasecmp("X-Long-Polling", key))
+	{
 		hi->lp_path = val;	/* steal memory reference */
 		val = NULL;
 	}
 
-	if (!strcasecmp("X-Reject-Reason", key)) {
+	if(!strcasecmp("X-Reject-Reason", key))
+	{
 		hi->reason = val;	/* steal memory reference */
 		val = NULL;
 	}
 
-	if (!strcasecmp("X-Stratum", key)) {
+	if(!strcasecmp("X-Stratum", key))
+	{
 		hi->stratum_url = val;	/* steal memory reference */
 		val = NULL;
 	}
@@ -252,7 +268,7 @@ out:
 
 #if LIBCURL_VERSION_NUM >= 0x070f06
 static int sockopt_keepalive_cb(void *userdata, curl_socket_t fd,
-	curlsocktype purpose)
+																curlsocktype purpose)
 {
 	int keepalive = 1;
 	int tcp_keepcnt = 3;
@@ -263,22 +279,22 @@ static int sockopt_keepalive_cb(void *userdata, curl_socket_t fd,
 #endif
 
 #ifndef WIN32	
-	if (unlikely(setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &keepalive,
+	if(unlikely(setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &keepalive,
 		sizeof(keepalive))))
 		return 1;
 #ifdef __linux
-	if (unlikely(setsockopt(fd, SOL_TCP, TCP_KEEPCNT,
+	if(unlikely(setsockopt(fd, SOL_TCP, TCP_KEEPCNT,
 		&tcp_keepcnt, sizeof(tcp_keepcnt))))
 		return 1;
-	if (unlikely(setsockopt(fd, SOL_TCP, TCP_KEEPIDLE,
+	if(unlikely(setsockopt(fd, SOL_TCP, TCP_KEEPIDLE,
 		&tcp_keepidle, sizeof(tcp_keepidle))))
 		return 1;
-	if (unlikely(setsockopt(fd, SOL_TCP, TCP_KEEPINTVL,
+	if(unlikely(setsockopt(fd, SOL_TCP, TCP_KEEPINTVL,
 		&tcp_keepintvl, sizeof(tcp_keepintvl))))
 		return 1;
 #endif /* __linux */
 #ifdef __APPLE_CC__
-	if (unlikely(setsockopt(fd, IPPROTO_TCP, TCP_KEEPALIVE,
+	if(unlikely(setsockopt(fd, IPPROTO_TCP, TCP_KEEPALIVE,
 		&tcp_keepintvl, sizeof(tcp_keepintvl))))
 		return 1;
 #endif /* __APPLE_CC__ */
@@ -286,8 +302,8 @@ static int sockopt_keepalive_cb(void *userdata, curl_socket_t fd,
 	struct tcp_keepalive vals;
 	vals.onoff = 1;
 	vals.keepalivetime = tcp_keepidle * 1000;
-	vals.keepaliveinterval = tcp_keepintvl * 1000;	
-	if (unlikely(WSAIoctl(fd, SIO_KEEPALIVE_VALS, &vals, sizeof(vals),
+	vals.keepaliveinterval = tcp_keepintvl * 1000;
+	if(unlikely(WSAIoctl(fd, SIO_KEEPALIVE_VALS, &vals, sizeof(vals),
 		NULL, 0, &outputBytes, NULL, NULL)))
 		return 1;
 #endif /* WIN32 */
@@ -297,8 +313,8 @@ static int sockopt_keepalive_cb(void *userdata, curl_socket_t fd,
 #endif
 
 json_t *json_rpc_call(CURL *curl, const char *url,
-		      const char *userpass, const char *rpc_req,
-		      bool longpoll_scan, bool longpoll, int *curl_err)
+											const char *userpass, const char *rpc_req,
+											bool longpoll_scan, bool longpoll, int *curl_err)
 {
 	json_t *val, *err_val, *res_val;
 	int rc;
@@ -314,10 +330,10 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 
 	/* it is assumed that 'curl' is freshly [re]initialized at this pt */
 
-	if (opt_protocol)
+	if(opt_protocol)
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 	curl_easy_setopt(curl, CURLOPT_URL, url);
-	if (opt_cert)
+	if(opt_cert)
 		curl_easy_setopt(curl, CURLOPT_CAINFO, opt_cert);
 	curl_easy_setopt(curl, CURLOPT_ENCODING, "");
 	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
@@ -336,28 +352,30 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
 	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, resp_hdr_cb);
 	curl_easy_setopt(curl, CURLOPT_HEADERDATA, &hi);
-	if (opt_proxy) {
+	if(opt_proxy)
+	{
 		curl_easy_setopt(curl, CURLOPT_PROXY, opt_proxy);
 		curl_easy_setopt(curl, CURLOPT_PROXYTYPE, opt_proxy_type);
 	}
-	if (userpass) {
+	if(userpass)
+	{
 		curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
 		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
 	}
 #if LIBCURL_VERSION_NUM >= 0x070f06
-	if (longpoll)
+	if(longpoll)
 		curl_easy_setopt(curl, CURLOPT_SOCKOPTFUNCTION, sockopt_keepalive_cb);
 #endif
 	curl_easy_setopt(curl, CURLOPT_POST, 1);
 
-	if (opt_protocol)
+	if(opt_protocol)
 		applog(LOG_DEBUG, "JSON protocol request:\n%s\n", rpc_req);
 
 	upload_data.buf = rpc_req;
 	upload_data.len = strlen(rpc_req);
 	upload_data.pos = 0;
 	sprintf(len_hdr, "Content-Length: %lu",
-		(unsigned long) upload_data.len);
+					(unsigned long)upload_data.len);
 
 	headers = curl_slist_append(headers, "Content-Type: application/json");
 	headers = curl_slist_append(headers, len_hdr);
@@ -369,57 +387,64 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
 	rc = curl_easy_perform(curl);
-	if (curl_err != NULL)
+	if(curl_err != NULL)
 		*curl_err = rc;
-	if (rc) {
-		if (!(longpoll && rc == CURLE_OPERATION_TIMEDOUT))
+	if(rc != CURLE_OK)
+	{
+		if(!longpoll)
 			applog(LOG_ERR, "HTTP request failed: %s", curl_err_str);
 		goto err_out;
 	}
 
 	/* If X-Stratum was found, activate Stratum */
-	if (want_stratum && hi.stratum_url &&
-	    !strncasecmp(hi.stratum_url, "stratum+tcp://", 14) &&
-	    !(opt_proxy && opt_proxy_type == CURLPROXY_HTTP)) {
+	if(want_stratum && hi.stratum_url &&
+		 !strncasecmp(hi.stratum_url, "stratum+tcp://", 14) &&
+		 !(opt_proxy && opt_proxy_type == CURLPROXY_HTTP))
+	{
 		have_stratum = true;
 		tq_push(thr_info[stratum_thr_id].q, hi.stratum_url);
 		hi.stratum_url = NULL;
 	}
 
 	/* If X-Long-Polling was found, activate long polling */
-	if (lp_scanning && hi.lp_path && !have_stratum) {
+	if(lp_scanning && hi.lp_path && !have_stratum)
+	{
 		have_longpoll = true;
 		tq_push(thr_info[longpoll_thr_id].q, hi.lp_path);
 		hi.lp_path = NULL;
 	}
 
-	if (!all_data.buf) {
+	if(!all_data.buf)
+	{
 		applog(LOG_ERR, "Empty data received in json_rpc_call.");
 		goto err_out;
 	}
 
 	val = JSON_LOADS((const char*)all_data.buf, &err);
-	if (!val) {
+	if(!val)
+	{
 		applog(LOG_ERR, "JSON decode failed(%d): %s", err.line, err.text);
 		goto err_out;
 	}
 
-	if (opt_protocol) {
+	if(opt_protocol)
+	{
 		char *s = json_dumps(val, JSON_INDENT(3));
 		applog(LOG_DEBUG, "JSON protocol response:\n%s", s);
 		free(s);
 	}
 
 	/* JSON-RPC valid response returns a non-null 'result',
-	 * and a null 'error'. */
+	* and a null 'error'. */
 	res_val = json_object_get(val, "result");
 	err_val = json_object_get(val, "error");
 
-	if (!res_val || json_is_null(res_val) ||
-	    (err_val && !json_is_null(err_val))) {
+	if(!res_val || json_is_null(res_val) ||
+		 (err_val && !json_is_null(err_val)))
+	{
 		char *s;
 
-		if (err_val)
+		if(err_val)
 			s = json_dumps(err_val, JSON_INDENT(3));
 		else
 			s = strdup("(unknown reason)");
@@ -431,7 +456,7 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 		goto err_out;
 	}
 
-	if (hi.reason)
+	if(hi.reason)
 		json_object_set_new(val, "reject-reason", json_string(hi.reason));
 
 	databuf_free(&all_data);
@@ -453,11 +478,11 @@ char *bin2hex(const unsigned char *p, size_t len)
 {
 	unsigned int i;
 	char *s = (char*)malloc((len * 2) + 1);
-	if (!s)
+	if(!s)
 		return NULL;
 
-	for (i = 0; i < len; i++)
-		sprintf(s + (i * 2), "%02x", (unsigned int) p[i]);
+	for(i = 0; i < len; i++)
+		sprintf(s + (i * 2), "%02x", (unsigned int)p[i]);
 
 	return s;
 }
@@ -469,15 +494,18 @@ bool hex2bin(unsigned char *p, const char *hexstr, size_t len)
 
 	hex_byte[2] = '\0';
 
-	while (*hexstr && len) {
-		if (!hexstr[1]) {
+	while(*hexstr && len)
+	{
+		if(!hexstr[1])
+		{
 			applog(LOG_ERR, "hex2bin str truncated");
 			return false;
 		}
 		hex_byte[0] = hexstr[0];
 		hex_byte[1] = hexstr[1];
-		*p = (unsigned char) strtol(hex_byte, &ep, 16);
-		if (*ep) {
+		*p = (unsigned char)strtol(hex_byte, &ep, 16);
+		if(*ep)
+		{
 			applog(LOG_ERR, "hex2bin failed on '%s'", hex_byte);
 			return false;
 		}
@@ -490,25 +518,27 @@ bool hex2bin(unsigned char *p, const char *hexstr, size_t len)
 }
 
 /* Subtract the `struct timeval' values X and Y,
-   storing the result in RESULT.
-   Return 1 if the difference is negative, otherwise 0.  */
+storing the result in RESULT.
+Return 1 if the difference is negative, otherwise 0.  */
 int timeval_subtract(struct timeval *result, struct timeval *x,
-	struct timeval *y)
+struct timeval *y)
 {
 	/* Perform the carry for the later subtraction by updating Y. */
-	if (x->tv_usec < y->tv_usec) {
+	if(x->tv_usec < y->tv_usec)
+	{
 		int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
 		y->tv_usec -= 1000000 * nsec;
 		y->tv_sec += nsec;
 	}
-	if (x->tv_usec - y->tv_usec > 1000000) {
+	if(x->tv_usec - y->tv_usec > 1000000)
+	{
 		int nsec = (x->tv_usec - y->tv_usec) / 1000000;
 		y->tv_usec += 1000000 * nsec;
 		y->tv_sec -= nsec;
 	}
 
 	/* Compute the time remaining to wait.
-	 * `tv_usec' is certainly positive. */
+	* `tv_usec' is certainly positive. */
 	result->tv_sec = x->tv_sec - y->tv_sec;
 	result->tv_usec = x->tv_usec - y->tv_usec;
 
@@ -520,23 +550,28 @@ bool fulltest(const uint32_t *hash, const uint32_t *target)
 {
 	int i;
 	bool rc = true;
-	
-	for (i = 7; i >= 0; i--) {
-		if (hash[i] > target[i]) {
+
+	for(i = 7; i >= 0; i--)
+	{
+		if(hash[i] > target[i])
+		{
 			rc = false;
 			break;
 		}
-		if (hash[i] < target[i]) {
+		if(hash[i] < target[i])
+		{
 			rc = true;
 			break;
 		}
 	}
 
-	if (opt_debug) {
+	if(opt_debug)
+	{
 		uint32_t hash_be[8], target_be[8];
 		char *hash_str, *target_str;
-		
-		for (i = 0; i < 8; i++) {
+
+		for(i = 0; i < 8; i++)
+		{
 			be32enc(hash_be + i, hash[7 - i]);
 			be32enc(target_be + i, target[7 - i]);
 		}
@@ -544,10 +579,10 @@ bool fulltest(const uint32_t *hash, const uint32_t *target)
 		target_str = bin2hex((unsigned char *)target_be, 32);
 
 		applog(LOG_DEBUG, "DEBUG: %s\nHash:   %s\nTarget: %s",
-			rc ? "hash <= target"
-			   : "hash > target (false positive)",
-			hash_str,
-			target_str);
+					 rc ? "hash <= target"
+					 : "hash > target (false positive)",
+					 hash_str,
+					 target_str);
 
 		free(hash_str);
 		free(target_str);
@@ -560,13 +595,14 @@ void diff_to_target(uint32_t *target, double diff)
 {
 	uint64_t m;
 	int k;
-	
-	for (k = 6; k > 0 && diff > 1.0; k--)
+
+	for(k = 6; k > 0 && diff > 1.0; k--)
 		diff /= 4294967296.0;
 	m = (uint64_t)(4294901760.0 / diff);
-	if (m == 0 && k == 6)
+	if(m == 0 && k == 6)
 		memset(target, 0xff, 32);
-	else {
+	else
+	{
 		memset(target, 0, 32);
 		target[k] = (uint32_t)m;
 		target[k + 1] = (uint32_t)(m >> 32);
@@ -582,22 +618,24 @@ void diff_to_target(uint32_t *target, double diff)
 static bool send_line(curl_socket_t sock, char *s)
 {
 	ssize_t len, sent = 0;
-	
+
 	len = (ssize_t)strlen(s);
 	s[len++] = '\n';
 
-	while (len > 0) {
+	while(len > 0)
+	{
 		struct timeval timeout = {0, 0};
 		ssize_t n;
 		fd_set wd;
 
 		FD_ZERO(&wd);
 		FD_SET(sock, &wd);
-		if (select((int)sock + 1, NULL, &wd, NULL, &timeout) < 1)
+		if(select((int)sock + 1, NULL, &wd, NULL, &timeout) < 1)
 			return false;
 		n = send(sock, s + sent, len, 0);
-		if (n < 0) {
-			if (!socket_blocks())
+		if(n < 0)
+		{
+			if(!socket_blocks())
 				return false;
 			n = 0;
 		}
@@ -612,7 +650,7 @@ bool stratum_send_line(struct stratum_ctx *sctx, char *s)
 {
 	bool ret = false;
 
-	if (opt_protocol)
+	if(opt_protocol)
 		applog(LOG_DEBUG, "> %s", s);
 
 	pthread_mutex_lock(&sctx->sock_lock);
@@ -631,7 +669,7 @@ static bool socket_full(curl_socket_t sock, int timeout)
 	FD_SET(sock, &rd);
 	tv.tv_sec = timeout;
 	tv.tv_usec = 0;
-	if (select((int)sock + 1, &rd, NULL, NULL, &tv) > 0)
+	if(select((int)sock + 1, &rd, NULL, NULL, &tv) > 0)
 		return true;
 	return false;
 }
@@ -650,7 +688,8 @@ static void stratum_buffer_append(struct stratum_ctx *sctx, const char *s)
 
 	old = strlen(sctx->sockbuf);
 	snew = old + strlen(s) + 1;
-	if (snew >= sctx->sockbuf_size) {
+	if(snew >= sctx->sockbuf_size)
+	{
 		sctx->sockbuf_size = snew + (RBUFSIZE - (snew % RBUFSIZE));
 		sctx->sockbuf = (char*)realloc(sctx->sockbuf, sctx->sockbuf_size);
 	}
@@ -662,35 +701,43 @@ char *stratum_recv_line(struct stratum_ctx *sctx)
 	ssize_t len, buflen;
 	char *tok, *sret = NULL;
 
-	if (!strstr(sctx->sockbuf, "\n")) {
+	if(!strstr(sctx->sockbuf, "\n"))
+	{
 		bool ret = true;
 		time_t rstart;
 
 		time(&rstart);
-		if (!socket_full(sctx->sock, 60)) {
+		if(!socket_full(sctx->sock, 60))
+		{
 			applog(LOG_ERR, "stratum_recv_line timed out");
 			goto out;
 		}
-		do {
+		do
+		{
 			char s[RBUFSIZE];
 			ssize_t n;
 
 			memset(s, 0, RBUFSIZE);
 			n = recv(sctx->sock, s, RECVSIZE, 0);
-			if (!n) {
+			if(!n)
+			{
 				ret = false;
 				break;
 			}
-			if (n < 0) {
-				if (!socket_blocks() || !socket_full(sctx->sock, 1)) {
+			if(n < 0)
+			{
+				if(!socket_blocks() || !socket_full(sctx->sock, 1))
+				{
 					ret = false;
 					break;
 				}
-			} else
+			}
+			else
 				stratum_buffer_append(sctx, s);
-		} while (time(NULL) - rstart < 60 && !strstr(sctx->sockbuf, "\n"));
+		} while(time(NULL) - rstart < 60 && !strstr(sctx->sockbuf, "\n"));
 
-		if (!ret) {
+		if(!ret)
+		{
 			applog(LOG_ERR, "stratum_recv_line failed");
 			goto out;
 		}
@@ -698,27 +745,28 @@ char *stratum_recv_line(struct stratum_ctx *sctx)
 
 	buflen = (ssize_t)strlen(sctx->sockbuf);
 	tok = strtok(sctx->sockbuf, "\n");
-	if (!tok) {
+	if(!tok)
+	{
 		applog(LOG_ERR, "stratum_recv_line failed to parse a newline-terminated string");
 		goto out;
 	}
 	sret = strdup(tok);
 	len = (ssize_t)strlen(sret);
 
-	if (buflen > len + 1)
+	if(buflen > len + 1)
 		memmove(sctx->sockbuf, sctx->sockbuf + len + 1, buflen - len + 1);
 	else
 		sctx->sockbuf[0] = '\0';
 
 out:
-	if (sret && opt_protocol)
+	if(sret && opt_protocol)
 		applog(LOG_DEBUG, "< %s", sret);
 	return sret;
 }
 
 #if LIBCURL_VERSION_NUM >= 0x071101
 static curl_socket_t opensocket_grab_cb(void *clientp, curlsocktype purpose,
-	struct curl_sockaddr *addr)
+struct curl_sockaddr *addr)
 {
 	curl_socket_t *sock = (curl_socket_t *)clientp;
 	*sock = socket(addr->family, addr->socktype, addr->protocol);
@@ -732,23 +780,26 @@ bool stratum_connect(struct stratum_ctx *sctx, const char *url)
 	int rc;
 
 	pthread_mutex_lock(&sctx->sock_lock);
-	if (sctx->curl)
+	if(sctx->curl)
 		curl_easy_cleanup(sctx->curl);
 	sctx->curl = curl_easy_init();
-	if (!sctx->curl) {
+	if(!sctx->curl)
+	{
 		applog(LOG_ERR, "CURL initialization failed");
 		pthread_mutex_unlock(&sctx->sock_lock);
 		return false;
 	}
 	curl = sctx->curl;
-	if (!sctx->sockbuf) {
+	if(!sctx->sockbuf)
+	{
 		sctx->sockbuf = (char*)calloc(RBUFSIZE, 1);
 		sctx->sockbuf_size = RBUFSIZE;
 	}
 	sctx->sockbuf[0] = '\0';
 	pthread_mutex_unlock(&sctx->sock_lock);
 
-	if (url != sctx->url) {
+	if(url != sctx->url)
+	{
 		free(sctx->url);
 		sctx->url = strdup(url);
 	}
@@ -756,21 +807,24 @@ bool stratum_connect(struct stratum_ctx *sctx, const char *url)
 	sctx->curl_url = (char*)malloc(strlen(url));
 	sprintf(sctx->curl_url, "http%s", strstr(url, "://"));
 
-	if (opt_protocol)
+	if(opt_protocol)
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 	curl_easy_setopt(curl, CURLOPT_URL, sctx->curl_url);
-	curl_easy_setopt(curl, CURLOPT_FRESH_CONNECT, 1);
+/*	curl_easy_setopt(curl, CURLOPT_FRESH_CONNECT, 1); */
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30);
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, sctx->curl_err_str);
 	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
 	curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
-	if (opt_proxy && opt_proxy_type != CURLPROXY_HTTP) {
+	if(opt_proxy && opt_proxy_type != CURLPROXY_HTTP)
+	{
 		curl_easy_setopt(curl, CURLOPT_PROXY, opt_proxy);
 		curl_easy_setopt(curl, CURLOPT_PROXYTYPE, opt_proxy_type);
-	} else if (getenv("http_proxy")) {
-		if (getenv("all_proxy"))
+	}
+	else if(getenv("http_proxy"))
+	{
+		if(getenv("all_proxy"))
 			curl_easy_setopt(curl, CURLOPT_PROXY, getenv("all_proxy"));
-		else if (getenv("ALL_PROXY"))
+		else if(getenv("ALL_PROXY"))
 			curl_easy_setopt(curl, CURLOPT_PROXY, getenv("ALL_PROXY"));
 		else
 			curl_easy_setopt(curl, CURLOPT_PROXY, "");
@@ -785,7 +839,8 @@ bool stratum_connect(struct stratum_ctx *sctx, const char *url)
 	curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 1);
 
 	rc = curl_easy_perform(curl);
-	if (rc) {
+	if(rc != CURLE_OK)
+	{
 		applog(LOG_ERR, "Stratum connection failed: %s", sctx->curl_err_str);
 		curl_easy_cleanup(curl);
 		sctx->curl = NULL;
@@ -803,7 +858,8 @@ bool stratum_connect(struct stratum_ctx *sctx, const char *url)
 void stratum_disconnect(struct stratum_ctx *sctx)
 {
 	pthread_mutex_lock(&sctx->sock_lock);
-	if (sctx->curl) {
+	if(sctx->curl)
+	{
 		curl_easy_cleanup(sctx->curl);
 		sctx->curl = NULL;
 		sctx->sockbuf[0] = '\0';
@@ -817,19 +873,20 @@ static const char *get_stratum_session_id(json_t *val)
 	int i, n;
 
 	arr_val = json_array_get(val, 0);
-	if (!arr_val || !json_is_array(arr_val))
+	if(!arr_val || !json_is_array(arr_val))
 		return NULL;
 	n = json_array_size(arr_val);
-	for (i = 0; i < n; i++) {
+	for(i = 0; i < n; i++)
+	{
 		const char *notify;
 		json_t *arr = json_array_get(arr_val, i);
 
-		if (!arr || !json_is_array(arr))
+		if(!arr || !json_is_array(arr))
 			break;
 		notify = json_string_value(json_array_get(arr, 0));
-		if (!notify)
+		if(!notify)
 			continue;
-		if (!strcasecmp(notify, "mining.notify"))
+		if(!strcasecmp(notify, "mining.notify"))
 			return json_string_value(json_array_get(arr, 1));
 	}
 	return NULL;
@@ -837,7 +894,7 @@ static const char *get_stratum_session_id(json_t *val)
 
 bool stratum_subscribe(struct stratum_ctx *sctx)
 {
-    if(jsonrpc_2) return true;
+	if(jsonrpc_2) return true;
 	char *s, *sret = NULL;
 	const char *sid, *xnonce1;
 	int xn2_size;
@@ -847,28 +904,30 @@ bool stratum_subscribe(struct stratum_ctx *sctx)
 
 start:
 	s = (char*)malloc(128 + (sctx->session_id ? strlen(sctx->session_id) : 0));
-	if (retry)
+	if(retry)
 		sprintf(s, "{\"id\": 1, \"method\": \"mining.subscribe\", \"params\": []}");
-	else if (sctx->session_id)
+	else if(sctx->session_id)
 		sprintf(s, "{\"id\": 1, \"method\": \"mining.subscribe\", \"params\": [\"" USER_AGENT "\", \"%s\"]}", sctx->session_id);
 	else
 		sprintf(s, "{\"id\": 1, \"method\": \"mining.subscribe\", \"params\": [\"" USER_AGENT "\"]}");
 
-	if (!stratum_send_line(sctx, s))
+	if(!stratum_send_line(sctx, s))
 		goto out;
 
-	if (!socket_full(sctx->sock, 30)) {
+	if(!socket_full(sctx->sock, 30))
+	{
 		applog(LOG_ERR, "stratum_subscribe timed out");
 		goto out;
 	}
 
 	sret = stratum_recv_line(sctx);
-	if (!sret)
+	if(!sret)
 		goto out;
 
 	val = JSON_LOADS(sret, &err);
 	free(sret);
-	if (!val) {
+	if(!val)
+	{
 		applog(LOG_ERR, "JSON decode failed(%d): %s", err.line, err.text);
 		goto out;
 	}
@@ -876,11 +935,13 @@ start:
 	res_val = json_object_get(val, "result");
 	err_val = json_object_get(val, "error");
 
-	if (!res_val || json_is_null(res_val) ||
-	    (err_val && !json_is_null(err_val))) {
-		if (opt_debug || retry) {
+	if(!res_val || json_is_null(res_val) ||
+		 (err_val && !json_is_null(err_val)))
+	{
+		if(opt_debug || retry)
+		{
 			free(s);
-			if (err_val)
+			if(err_val)
 				s = json_dumps(err_val, JSON_INDENT(3));
 			else
 				s = strdup("(unknown reason)");
@@ -890,15 +951,17 @@ start:
 	}
 
 	sid = get_stratum_session_id(res_val);
-	if (opt_debug && !sid)
+	if(opt_debug && !sid)
 		applog(LOG_DEBUG, "Failed to get Stratum session id");
 	xnonce1 = json_string_value(json_array_get(res_val, 1));
-	if (!xnonce1) {
+	if(!xnonce1)
+	{
 		applog(LOG_ERR, "Failed to get extranonce1");
 		goto out;
 	}
 	xn2_size = json_integer_value(json_array_get(res_val, 2));
-	if (!xn2_size) {
+	if(!xn2_size)
+	{
 		applog(LOG_ERR, "Failed to get extranonce2_size");
 		goto out;
 	}
@@ -914,18 +977,20 @@ start:
 	sctx->next_diff = 1.0;
 	pthread_mutex_unlock(&sctx->work_lock);
 
-	if (opt_debug && sid)
+	if(opt_debug && sid)
 		applog(LOG_DEBUG, "Stratum session id: %s", sctx->session_id);
 
 	ret = true;
 
 out:
 	free(s);
-	if (val)
+	if(val)
 		json_decref(val);
 
-	if (!ret) {
-		if (sret && !retry) {
+	if(!ret)
+	{
+		if(sret && !retry)
+		{
 			retry = true;
 			goto start;
 		}
@@ -941,31 +1006,36 @@ bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *p
 	json_error_t err;
 	bool ret = false;
 
-	if(jsonrpc_2) {
-        s = (char*)malloc(300 + strlen(user) + strlen(pass));
-        sprintf(s, "{\"method\": \"login\", \"params\": {\"login\": \"%s\", \"pass\": \"%s\", \"agent\": \"cpuminer-multi/0.1\"}, \"id\": 1}",
-                user, pass);
-	} else {
-        s = (char*)malloc(80 + strlen(user) + strlen(pass));
-        sprintf(s, "{\"id\": 2, \"method\": \"mining.authorize\", \"params\": [\"%s\", \"%s\"]}",
-                user, pass);
+	if(jsonrpc_2)
+	{
+		s = (char*)malloc(300 + strlen(user) + strlen(pass));
+		sprintf(s, "{\"method\": \"login\", \"params\": {\"login\": \"%s\", \"pass\": \"%s\", \"agent\": \"%s/%s\"}, \"id\": 1}",
+						user, pass, PACKAGE_NAME, PACKAGE_VERSION);
+	}
+	else
+	{
+		s = (char*)malloc(80 + strlen(user) + strlen(pass));
+		sprintf(s, "{\"id\": 2, \"method\": \"mining.authorize\", \"params\": [\"%s\", \"%s\"]}",
+						user, pass);
 	}
 
-	if (!stratum_send_line(sctx, s))
+	if(!stratum_send_line(sctx, s))
 		goto out;
 
-	while (1) {
+	while(1)
+	{
 		sret = stratum_recv_line(sctx);
-		if (!sret)
+		if(!sret)
 			goto out;
-		if (!stratum_handle_method(sctx, sret))
+		if(!stratum_handle_method(sctx, sret))
 			break;
 		free(sret);
 	}
 
 	val = JSON_LOADS(sret, &err);
 	free(sret);
-	if (!val) {
+	if(!val)
+	{
 		applog(LOG_ERR, "JSON decode failed(%d): %s", err.line, err.text);
 		goto out;
 	}
@@ -973,25 +1043,27 @@ bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *p
 	res_val = json_object_get(val, "result");
 	err_val = json_object_get(val, "error");
 
-	if (!res_val || json_is_false(res_val) ||
-	    (err_val && !json_is_null(err_val)))  {
+	if(!res_val || json_is_false(res_val) ||
+		 (err_val && !json_is_null(err_val)))
+	{
 		applog(LOG_ERR, "Stratum authentication failed");
 		goto out;
 	}
 
-    if(jsonrpc_2) {
-        rpc2_login_decode(val);
-        json_t *job_val = json_object_get(res_val, "job");
-        pthread_mutex_lock(&sctx->work_lock);
-        if(job_val) rpc2_job_decode(job_val, &sctx->work);
-        pthread_mutex_unlock(&sctx->work_lock);
-    }
+	if(jsonrpc_2)
+	{
+		rpc2_login_decode(val);
+		json_t *job_val = json_object_get(res_val, "job");
+		pthread_mutex_lock(&sctx->work_lock);
+		if(job_val) rpc2_job_decode(job_val, &sctx->work);
+		pthread_mutex_unlock(&sctx->work_lock);
+	}
 
 	ret = true;
 
 out:
 	free(s);
-	if (val)
+	if(val)
 		json_decref(val);
 
 	return ret;
@@ -999,11 +1071,11 @@ out:
 
 static bool stratum_2_job(struct stratum_ctx *sctx, json_t *params)
 {
-    bool ret = false;
-    pthread_mutex_lock(&sctx->work_lock);
-    ret = rpc2_job_decode(params, &sctx->work);
-    pthread_mutex_unlock(&sctx->work_lock);
-    return ret;
+	bool ret = false;
+	pthread_mutex_lock(&sctx->work_lock);
+	ret = rpc2_job_decode(params, &sctx->work);
+	pthread_mutex_unlock(&sctx->work_lock);
+	return ret;
 }
 
 static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
@@ -1020,7 +1092,7 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	coinb1 = json_string_value(json_array_get(params, 2));
 	coinb2 = json_string_value(json_array_get(params, 3));
 	merkle_arr = json_array_get(params, 4);
-	if (!merkle_arr || !json_is_array(merkle_arr))
+	if(!merkle_arr || !json_is_array(merkle_arr))
 		goto out;
 	merkle_count = json_array_size(merkle_arr);
 	version = json_string_value(json_array_get(params, 5));
@@ -1029,17 +1101,20 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	clean = json_is_true(json_array_get(params, 8));
 	nreward = json_string_value(json_array_get(params, 9));
 
-	if (!job_id || !prevhash || !coinb1 || !coinb2 || !version || !nbits || !ntime ||
-	    strlen(prevhash) != 64 || strlen(version) != 8 ||
-	    strlen(nbits) != 8 || strlen(ntime) != 8) {
+	if(!job_id || !prevhash || !coinb1 || !coinb2 || !version || !nbits || !ntime ||
+		 strlen(prevhash) != 64 || strlen(version) != 8 ||
+		 strlen(nbits) != 8 || strlen(ntime) != 8)
+	{
 		applog(LOG_ERR, "Stratum notify: invalid parameters");
 		goto out;
 	}
 	merkle = (unsigned char**)malloc(merkle_count * sizeof(char *));
-	for (i = 0; i < merkle_count; i++) {
+	for(i = 0; i < merkle_count; i++)
+	{
 		const char *s = json_string_value(json_array_get(merkle_arr, i));
-		if (!s || strlen(s) != 64) {
-			while (i--)
+		if(!s || strlen(s) != 64)
+		{
+			while(i--)
 				free(merkle[i]);
 			free(merkle);
 			applog(LOG_ERR, "Stratum notify: invalid Merkle branch");
@@ -1054,12 +1129,12 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	coinb1_size = strlen(coinb1) / 2;
 	coinb2_size = strlen(coinb2) / 2;
 	sctx->job.coinbase_size = coinb1_size + sctx->xnonce1_size +
-	                          sctx->xnonce2_size + coinb2_size;
+		sctx->xnonce2_size + coinb2_size;
 	sctx->job.coinbase = (unsigned char*)realloc(sctx->job.coinbase, sctx->job.coinbase_size);
 	sctx->job.xnonce2 = sctx->job.coinbase + coinb1_size + sctx->xnonce1_size;
 	hex2bin(sctx->job.coinbase, coinb1, coinb1_size);
 	memcpy(sctx->job.coinbase + coinb1_size, sctx->xnonce1, sctx->xnonce1_size);
-	if (!sctx->job.job_id || strcmp(sctx->job.job_id, job_id))
+	if(!sctx->job.job_id || strcmp(sctx->job.job_id, job_id))
 		memset(sctx->job.xnonce2, 0, sctx->xnonce2_size);
 	hex2bin(sctx->job.xnonce2 + sctx->xnonce2_size, coinb2, coinb2_size);
 
@@ -1067,7 +1142,7 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	sctx->job.job_id = strdup(job_id);
 	hex2bin(sctx->job.prevhash, prevhash, 32);
 
-	for (i = 0; i < sctx->job.merkle_count; i++)
+	for(i = 0; i < sctx->job.merkle_count; i++)
 		free(sctx->job.merkle[i]);
 	free(sctx->job.merkle);
 	sctx->job.merkle = merkle;
@@ -1098,14 +1173,14 @@ static bool stratum_set_difficulty(struct stratum_ctx *sctx, json_t *params)
 	double diff;
 
 	diff = json_number_value(json_array_get(params, 0));
-	if (diff == 0)
+	if(diff == 0)
 		return false;
 
 	pthread_mutex_lock(&sctx->work_lock);
 	sctx->next_diff = diff;
 	pthread_mutex_unlock(&sctx->work_lock);
 
-	if (opt_debug)
+	if(opt_debug)
 		applog(LOG_DEBUG, "Stratum difficulty set to %g", diff);
 
 	return true;
@@ -1119,13 +1194,13 @@ static bool stratum_reconnect(struct stratum_ctx *sctx, json_t *params)
 
 	host = json_string_value(json_array_get(params, 0));
 	port_val = json_array_get(params, 1);
-	if (json_is_string(port_val))
+	if(json_is_string(port_val))
 		port = atoi(json_string_value(port_val));
 	else
 		port = json_integer_value(port_val);
-	if (!host || !port)
+	if(!host || !port)
 		return false;
-	
+
 	free(sctx->url);
 	sctx->url = (char*)malloc(32 + strlen(host));
 	sprintf(sctx->url, "stratum+tcp://%s:%d", host, port);
@@ -1142,8 +1217,8 @@ static bool stratum_get_version(struct stratum_ctx *sctx, json_t *id)
 	char *s;
 	json_t *val;
 	bool ret;
-	
-	if (!id || json_is_null(id))
+
+	if(!id || json_is_null(id))
 		return false;
 
 	val = json_object();
@@ -1165,10 +1240,10 @@ static bool stratum_show_message(struct stratum_ctx *sctx, json_t *id, json_t *p
 	bool ret;
 
 	val = json_array_get(params, 0);
-	if (val)
+	if(val)
 		applog(LOG_NOTICE, "MESSAGE FROM SERVER: %s", json_string_value(val));
-	
-	if (!id || json_is_null(id))
+
+	if(!id || json_is_null(id))
 		return true;
 
 	val = json_object();
@@ -1191,46 +1266,56 @@ bool stratum_handle_method(struct stratum_ctx *sctx, const char *s)
 	bool ret = false;
 
 	val = JSON_LOADS(s, &err);
-	if (!val) {
+	if(!val)
+	{
 		applog(LOG_ERR, "JSON decode failed(%d): %s", err.line, err.text);
 		goto out;
 	}
 
 	method = json_string_value(json_object_get(val, "method"));
-	if (!method)
+	if(!method)
 		goto out;
 	id = json_object_get(val, "id");
 	params = json_object_get(val, "params");
 
-    if (jsonrpc_2) {
-        if (!strcasecmp(method, "job")) {
-            ret = stratum_2_job(sctx, params);
-            goto out;
-        }
-    } else {
-        if (!strcasecmp(method, "mining.notify")) {
-            ret = stratum_notify(sctx, params);
-            goto out;
-        }
-        if (!strcasecmp(method, "mining.set_difficulty")) {
-            ret = stratum_set_difficulty(sctx, params);
-            goto out;
-        }
-        if (!strcasecmp(method, "client.reconnect")) {
-            ret = stratum_reconnect(sctx, params);
-            goto out;
-        }
-        if (!strcasecmp(method, "client.get_version")) {
-            ret = stratum_get_version(sctx, id);
-            goto out;
-        }
-        if (!strcasecmp(method, "client.show_message")) {
-            ret = stratum_show_message(sctx, id, params);
-            goto out;
-        }
-    }
+	if(jsonrpc_2)
+	{
+		if(!strcasecmp(method, "job"))
+		{
+			ret = stratum_2_job(sctx, params);
+			goto out;
+		}
+	}
+	else
+	{
+		if(!strcasecmp(method, "mining.notify"))
+		{
+			ret = stratum_notify(sctx, params);
+			goto out;
+		}
+		if(!strcasecmp(method, "mining.set_difficulty"))
+		{
+			ret = stratum_set_difficulty(sctx, params);
+			goto out;
+		}
+		if(!strcasecmp(method, "client.reconnect"))
+		{
+			ret = stratum_reconnect(sctx, params);
+			goto out;
+		}
+		if(!strcasecmp(method, "client.get_version"))
+		{
+			ret = stratum_get_version(sctx, id);
+			goto out;
+		}
+		if(!strcasecmp(method, "client.show_message"))
+		{
+			ret = stratum_show_message(sctx, id, params);
+			goto out;
+		}
+	}
 out:
-	if (val)
+	if(val)
 		json_decref(val);
 
 	return ret;
@@ -1241,7 +1326,7 @@ struct thread_q *tq_new(void)
 	struct thread_q *tq;
 
 	tq = (struct thread_q *)calloc(1, sizeof(*tq));
-	if (!tq)
+	if(!tq)
 		return NULL;
 
 	INIT_LIST_HEAD(&tq->q);
@@ -1255,10 +1340,11 @@ void tq_free(struct thread_q *tq)
 {
 	struct tq_ent *ent, *iter;
 
-	if (!tq)
+	if(!tq)
 		return;
 
-	list_for_each_entry_safe(ent, iter, &tq->q, q_node, struct tq_ent, struct tq_ent) {
+	list_for_each_entry_safe(ent, iter, &tq->q, q_node, struct tq_ent, struct tq_ent)
+	{
 		list_del(&ent->q_node);
 		free(ent);
 	}
@@ -1296,7 +1382,7 @@ bool tq_push(struct thread_q *tq, void *data)
 	bool rc = true;
 
 	ent = (struct tq_ent *)calloc(1, sizeof(*ent));
-	if (!ent)
+	if(!ent)
 		return false;
 
 	ent->data = data;
@@ -1304,9 +1390,12 @@ bool tq_push(struct thread_q *tq, void *data)
 
 	pthread_mutex_lock(&tq->mutex);
 
-	if (!tq->frozen) {
+	if(!tq->frozen)
+	{
 		list_add_tail(&ent->q_node, &tq->q);
-	} else {
+	}
+	else
+	{
 		free(ent);
 		rc = false;
 	}
@@ -1325,16 +1414,16 @@ void *tq_pop(struct thread_q *tq, const struct timespec *abstime)
 
 	pthread_mutex_lock(&tq->mutex);
 
-	if (!list_empty(&tq->q))
+	if(!list_empty(&tq->q))
 		goto pop;
 
-	if (abstime)
+	if(abstime)
 		rc = pthread_cond_timedwait(&tq->cond, &tq->mutex, abstime);
 	else
 		rc = pthread_cond_wait(&tq->cond, &tq->mutex);
-	if (rc)
+	if(rc)
 		goto out;
-	if (list_empty(&tq->q))
+	if(list_empty(&tq->q))
 		goto out;
 
 pop:
@@ -1349,29 +1438,30 @@ out:
 	return rval;
 }
 
-void hexdump( const char *what, void *data, const size_t datalen )
+void hexdump(const char *what, void *data, const size_t datalen)
 {
-    char *padding;
-    int i, len;
-    
-    len = strlen(what) + 3;
-    padding = (char *)malloc(len+1);
+	char *padding;
+	int i, len;
 
-    if( padding == NULL ) return;
+	len = strlen(what) + 3;
+	padding = (char *)malloc(len + 1);
 
-    memset(padding, 0x20, len);
-    padding[len] = 0;
+	if(padding == NULL) return;
 
-    printf("%s : ", what);
-    
-    for( i = 0; i < datalen; i++ ) {
+	memset(padding, 0x20, len);
+	padding[len] = 0;
 
-        if( i > 0 && i % 16 == 0 ) printf("\n%s", padding);
-        printf("0x%02x ", ((uint8_t*)data)[i]);
-    }
-    
-    printf("\n");
+	printf("%s : ", what);
 
-    free(padding);
+	for(i = 0; i < datalen; i++)
+	{
+
+		if(i > 0 && i % 16 == 0) printf("\n%s", padding);
+		printf("0x%02x ", ((uint8_t*)data)[i]);
+	}
+
+	printf("\n");
+
+	free(padding);
 }
 

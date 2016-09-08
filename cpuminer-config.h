@@ -38,16 +38,16 @@
 #undef HAVE_INTTYPES_H
 
 /* Define to 1 if you have a functional curl library. */
-#undef HAVE_LIBCURL
+#define HAVE_LIBCURL 1
 
 /* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
+#define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
-#undef HAVE_STDINT_H
+#define HAVE_STDINT_H 1
 
 /* Define to 1 if you have the <stdlib.h> header file. */
-#undef HAVE_STDLIB_H
+#define HAVE_STDLIB_H 1
 
 /* Define to 1 if you have the <strings.h> header file. */
 #undef HAVE_STRINGS_H
@@ -77,13 +77,13 @@
 #undef HAVE_UNISTD_H
 
 /* Defined if libcurl supports AsynchDNS */
-#undef LIBCURL_FEATURE_ASYNCHDNS
+#define LIBCURL_FEATURE_ASYNCHDNS 1
 
 /* Defined if libcurl supports IDN */
-#undef LIBCURL_FEATURE_IDN
+#define LIBCURL_FEATURE_IDN 1
 
 /* Defined if libcurl supports IPv6 */
-#undef LIBCURL_FEATURE_IPV6
+#define LIBCURL_FEATURE_IPV6 1
 
 /* Defined if libcurl supports KRB4 */
 #undef LIBCURL_FEATURE_KRB4
@@ -95,7 +95,7 @@
 #undef LIBCURL_FEATURE_NTLM
 
 /* Defined if libcurl supports SSL */
-#undef LIBCURL_FEATURE_SSL
+#define LIBCURL_FEATURE_SSL 1
 
 /* Defined if libcurl supports SSPI */
 #undef LIBCURL_FEATURE_SSPI
@@ -113,10 +113,10 @@
 #undef LIBCURL_PROTOCOL_FTPS
 
 /* Defined if libcurl supports HTTP */
-#undef LIBCURL_PROTOCOL_HTTP
+#define LIBCURL_PROTOCOL_HTTP 1
 
 /* Defined if libcurl supports HTTPS */
-#undef LIBCURL_PROTOCOL_HTTPS
+#define LIBCURL_PROTOCOL_HTTPS 1
 
 /* Defined if libcurl supports IMAP */
 #undef LIBCURL_PROTOCOL_IMAP
@@ -149,10 +149,10 @@
 #undef PACKAGE_BUGREPORT
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "ccminer"
+#define PACKAGE_NAME "ccminer-cryptonight"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "ccminer 2014.06.14"
+#define PACKAGE_STRING "ccminer-cryptonight 1.0"
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
@@ -161,7 +161,10 @@
 #undef PACKAGE_URL
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2014.06.14"
+#define PACKAGE_VERSION "1.0"
+
+/* Version number of package */
+#undef VERSION
 
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
@@ -172,7 +175,7 @@
 #undef STACK_DIRECTION
 
 /* Define to 1 if you have the ANSI C header files. */
-#undef STDC_HEADERS
+#define STDC_HEADERS 1
 
 /* Define to 1 if AVX assembly is available. */
 #undef USE_AVX
@@ -180,11 +183,8 @@
 /* Define to 1 if XOP assembly is available. */
 #undef USE_XOP
 
-/* Version number of package */
-#undef VERSION
-
 /* Define curl_free() as free() if our version of curl lacks curl_free. */
 #undef curl_free
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
-#undef size_t
+/*#undef size_t*/

@@ -236,64 +236,64 @@ struct option
 #endif
 
 static char const usage[] = "\
-														Usage: " PROGRAM_NAME " [OPTIONS]\n\
-														Options:\n\
-														  -d, --devices         takes a comma separated list of CUDA devices to use.\n\
-															                        Device IDs start counting from 0! Alternatively takes\n\
-																											                        string names of your cards like gtx780ti or gt640#2\n\
-																																							                        (matching 2nd gt640 in the PC)\n\
-																																																			  -f, --diff            Divide difficulty by this factor (std is 1) \n\
-																																																				  -l, --launch=CONFIG   launch config for the Cryptonight kernel.\n\
-																																																					                        a comma separated list of values in form of\n\
-																																																																	                        AxB where A is the number of threads to run in\n\
-																																																																													                        each thread block and B is the number of thread\n\
-																																																																																									                        blocks to launch. If less values than devices in use\n\
-																																																																																																					                        are provided, the last value will be used for\n\
-																																																																																																																	                        the remaining devices. If you don't need to vary the\n\
-																																																																																																																													                        value between devices, you can just enter a single value\n\
-																																																																																																																																									                        and it will be used for all devices. (default: 8x40)\n\
-																																																																																																																																																					      --bfactor=X       Enables running the Cryptonight kernel in smaller pieces.\n\
-																																																																																																																																																								                        The kernel will be run in 2^X parts according to bfactor,\n\
-																																																																																																																																																																				                        with a small pause between parts, specified by --bsleep.\n\
-																																																																																																																																																																																                        This is a per-device setting like the launch config.\n\
-																																																																																																																																																																																												                        (default: 0 (no splitting) on Linux, 6 (64 parts) on Windows)\n\
-																																																																																																																																																																																																								      --bsleep=X        Insert a delay of X microseconds between kernel launches.\n\
-																																																																																																																																																																																																											                        Use in combination with --bfactor to mitigate the lag\n\
-																																																																																																																																																																																																																							                        when running on your primary GPU.\n\
-																																																																																																																																																																																																																																			                        This is a per-device setting like the launch config.\n\
-																																																																																																																																																																																																																																															  -m, --trust-pool      trust the max block reward vote (maxvote) sent by the pool\n\
-																																																																																																																																																																																																																																																  -o, --url=URL         URL of mining server\n\
-																																																																																																																																																																																																																																																	  -O, --userpass=U:P    username:password pair for mining server\n\
-																																																																																																																																																																																																																																																		  -u, --user=USERNAME   username for mining server\n\
-																																																																																																																																																																																																																																																			  -p, --pass=PASSWORD   password for mining server\n\
-																																																																																																																																																																																																																																																				      --cert=FILE       certificate for mining server using SSL\n\
-																																																																																																																																																																																																																																																							  -x, --proxy=[PROTOCOL://]HOST[:PORT]  connect through a proxy\n\
-																																																																																																																																																																																																																																																								  -t, --threads=N       number of miner threads (default: number of nVidia GPUs)\n\
-																																																																																																																																																																																																																																																									  -r, --retries=N       number of times to retry if a network call fails\n\
-																																																																																																																																																																																																																																																										                          (default: retry indefinitely)\n\
-																																																																																																																																																																																																																																																																							  -R, --retry-pause=N   time to pause between retries, in seconds (default: 30)\n\
-																																																																																																																																																																																																																																																																								  -T, --timeout=N       network timeout, in seconds (default: 270)\n\
-																																																																																																																																																																																																																																																																									  -s, --scantime=N      upper bound on time spent scanning current work when\n\
-																																																																																																																																																																																																																																																																										                          long polling is unavailable, in seconds (default: 5)\n\
-																																																																																																																																																																																																																																																																																							      --no-longpoll     disable X-Long-Polling support\n\
-																																																																																																																																																																																																																																																																																										      --no-stratum      disable X-Stratum support\n\
-																																																																																																																																																																																																																																																																																													  -q, --quiet           disable per-thread hashmeter output\n\
-																																																																																																																																																																																																																																																																																														  -D, --debug           enable debug output\n\
-																																																																																																																																																																																																																																																																																															  -P, --protocol-dump   verbose dump of protocol-level activities\n"
+Usage: " PROGRAM_NAME " [OPTIONS]\n\
+	Options:\n\
+	  -d, --devices         takes a comma separated list of CUDA devices to use.\n\
+                          Device IDs start counting from 0! Alternatively takes\n\
+	                        string names of your cards like gtx780ti or gt640#2\n\
+	                        (matching 2nd gt640 in the PC)\n\
+    -f, --diff            Divide difficulty by this factor (std is 1) \n\
+	  -l, --launch=CONFIG   launch config for the Cryptonight kernel.\n\
+                          a comma separated list of values in form of\n\
+	                        AxB where A is the number of threads to run in\n\
+	                        each thread block and B is the number of thread\n\
+	                        blocks to launch. If less values than devices in use\n\
+                          are provided, the last value will be used for\n\
+                          the remaining devices. If you don't need to vary the\n\
+	                        value between devices, you can just enter a single value\n\
+	                        and it will be used for all devices. (default: 8x40)\n\
+		    --bfactor=X       Enables running the Cryptonight kernel in smaller pieces.\n\
+	                        The kernel will be run in 2^X parts according to bfactor,\n\
+                          with a small pause between parts, specified by --bsleep.\n\
+                          This is a per-device setting like the launch config.\n\
+	                        (default: 0 (no splitting) on Linux, 6 (64 parts) on Windows)\n\
+	      --bsleep=X        Insert a delay of X microseconds between kernel launches.\n\
+                          Use in combination with --bfactor to mitigate the lag\n\
+	                        when running on your primary GPU.\n\
+                          This is a per-device setting like the launch config.\n\
+	  -m, --trust-pool      trust the max block reward vote (maxvote) sent by the pool\n\
+	  -o, --url=URL         URL of mining server\n\
+    -O, --userpass=U:P    username:password pair for mining server\n\
+	  -u, --user=USERNAME   username for mining server\n\
+	  -p, --pass=PASSWORD   password for mining server\n\
+        --cert=FILE       certificate for mining server using SSL\n\
+	  -x, --proxy=[PROTOCOL://]HOST[:PORT]  connect through a proxy\n\
+    -t, --threads=N       number of miner threads (default: number of nVidia GPUs)\n\
+	  -r, --retries=N       number of times to retry if a network call fails\n\
+                          (default: retry indefinitely)\n\
+	  -R, --retry-pause=N   time to pause between retries, in seconds (default: 30)\n\
+        --timeout=N       network timeout, in seconds (default: 270)\n\
+	  -s, --scantime=N      upper bound on time spent scanning current work when\n\
+                          long polling is unavailable, in seconds (default: 5)\n\
+	      --no-longpoll     disable X-Long-Polling support\n\
+	      --no-stratum      disable X-Stratum support\n\
+	  -q, --quiet           disable per-thread hashmeter output\n\
+	  -D, --debug           enable debug output\n\
+	  -P, --protocol-dump   verbose dump of protocol-level activities\n"
 #ifdef HAVE_SYSLOG_H
-																																																																																																																																																																																																																																																																																																"\
-																																																																																																																																																																																																																																																																																																  -S, --syslog          use system log for output messages\n"
+"\
+	  -S, --syslog          use system log for output messages\n"
 #endif
 #ifndef WIN32
-																																																																																																																																																																																																																																																																																																	"\
-																																																																																																																																																																																																																																																																																																	  -B, --background      run the miner in the background\n"
+"\
+	  -B, --background      run the miner in the background\n"
 #endif
-																																																																																																																																																																																																																																																																																																		"\
-																																																																																																																																																																																																																																																																																																		      --benchmark       run in offline benchmark mode\n\
-																																																																																																																																																																																																																																																																																																					  -c, --config=FILE     load a JSON-format configuration file\n\
-																																																																																																																																																																																																																																																																																																						  -V, --version         display version information and exit\n\
-																																																																																																																																																																																																																																																																																																							  -h, --help            display this help text and exit\n\
-																																																																																																																																																																																																																																																																																																								";
+"\
+	      --benchmark       run in offline benchmark mode\n\
+	  -c, --config=FILE     load a JSON-format configuration file\n\
+	  -V, --version         display version information and exit\n\
+	  -h, --help            display this help text and exit\n\
+";
 
 static char const short_options[] =
 #ifndef WIN32
@@ -654,8 +654,8 @@ static void share_result(int result, const char *reason)
 					 s,
 					 result ? "(yay!!!)" : "(booooo)");
 	}
-	if(opt_debug && reason)
-		applog(LOG_DEBUG, "DEBUG: reject reason: %s", reason);
+	if(reason)
+		applog(LOG_DEBUG, "reject reason: %s", reason);
 }
 
 static bool submit_upstream_work(CURL *curl, struct work *work)
@@ -1332,8 +1332,7 @@ static void *miner_thread(void *userdata)
 
 			if(opt_algo == ALGO_CRYPTONIGHT)
 			{
-				applog(LOG_INFO, "GPU #%d: %s, %.2f H/s",
-							 device_map[thr_id], device_name[thr_id], thr_hashrates[thr_id]);
+				applog(LOG_INFO, "GPU #%d: %s, %.2f H/s", device_map[thr_id], device_name[thr_id], thr_hashrates[thr_id]);
 			}
 			else
 			{
@@ -1546,8 +1545,15 @@ static bool stratum_handle_response(char *buf)
 		valid = json_is_true(res_val);
 	}
 
-	share_result(valid,
-							 err_val ? (jsonrpc_2 ? json_string_value(err_val) : json_string_value(json_array_get(err_val, 1))) : NULL);
+	if(err_val)
+	{
+		if(jsonrpc_2)
+			share_result(valid, json_string_value(err_val));
+		else
+			share_result(valid, json_string_value(json_array_get(err_val, 1)));
+	}
+	else
+		share_result(valid, NULL);
 
 	ret = true;
 out:
@@ -2081,7 +2087,7 @@ static void signal_handler(int sig)
 }
 #endif
 
-#define PROGRAM_VERSION "0.13"
+#define PROGRAM_VERSION "1.0"
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;
@@ -2092,18 +2098,13 @@ int main(int argc, char *argv[])
 	SYSTEM_INFO sysinfo;
 #endif
 
-	printf("    *** ccminer-cryptonight for nVidia GPUs by tsiv ***\n");
+	printf("    *** ccminer-cryptonight %s for nVidia GPUs by tsiv and KlausT ***\n", PROGRAM_VERSION);
 	printf(" based on ccMiner by Christian Buchner and Christian H.\n");
 	printf(" based on cpuminer-multi by LucasJones\n");
 	printf(" based on pooler-cpuminer 2.3.2 (c) 2010 Jeff Garzik, 2012 pooler\n");
-	printf("    BTC donation address: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs\n");
-	printf("    DRK donation address: XrHp267JNTVdw5P3dsBpqYfgTpWnzoESPQ\n");
-	printf("    JPC donation address: Jb9hFeBgakCXvM5u27rTZoYR9j13JGmuc2\n");
-	printf("    VTC donation address: VwYsZFPb6KMeWuP4voiS9H1kqxcU9kGbsw\n");
-	printf("    XMR donation address: \n");
-	printf("      (man these are long... single address, split on two lines)\n");
-	printf("      42uasNqYPnSaG3TwRtTeVbQ4aRY3n9jY6VXX3mfgerWt4ohD\n");
-	printf("      QLVaBPv3cYGKDXasTUVuLvhxetcuS16ynt85czQ48mbSrWX\n");
+	printf(" tsiv's BTC donation address:   1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs\n");
+	printf(" KlausT's BTC donation address: 1QHH2dibyYL5iyMDk3UN4PVvFVtrWD8QKp\n");
+	printf(" for more donation addresses please read the README.txt\n");
 	printf("-----------------------------------------------------------------\n");
 
 	rpc_user = strdup("");
