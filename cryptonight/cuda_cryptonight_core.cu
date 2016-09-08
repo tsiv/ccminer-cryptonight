@@ -22,7 +22,7 @@ __device__ __forceinline__ uint64_t cuda_mul128(uint64_t multiplier, uint64_t mu
 	return(multiplier * multiplicand);
 }
 
-__global__ void cryptonight_core_gpu_phase1(int threads, uint32_t *long_state, struct cryptonight_gpu_ctx *ctx)
+__global__ void cryptonight_core_gpu_phase1(int threads, uint32_t * __restrict__ long_state, struct cryptonight_gpu_ctx * __restrict__ ctx)
 {
 	__shared__ uint32_t sharedMemory[1024];
 
@@ -48,7 +48,7 @@ __global__ void cryptonight_core_gpu_phase1(int threads, uint32_t *long_state, s
 	}
 }
 
-__global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partidx, uint32_t *d_long_state, struct cryptonight_gpu_ctx *d_ctx)
+__global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partidx, uint32_t * __restrict__ d_long_state, struct cryptonight_gpu_ctx * __restrict__ d_ctx)
 {
 	__shared__ uint32_t sharedMemory[1024];
 
@@ -189,7 +189,7 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
 #endif // __CUDA_ARCH__ >= 300
 }
 
-__global__ void cryptonight_core_gpu_phase3(int threads, uint32_t *long_state, struct cryptonight_gpu_ctx *ctx)
+__global__ void cryptonight_core_gpu_phase3(int threads, uint32_t * __restrict__ long_state, struct cryptonight_gpu_ctx * __restrict__ ctx)
 {
 	__shared__ uint32_t sharedMemory[1024];
 

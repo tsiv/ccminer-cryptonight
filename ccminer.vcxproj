@@ -171,9 +171,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile>
       <CInterleavedPTX>false</CInterleavedPTX>
     </CudaCompile>
-    <CudaCompile>
-      <MaxRegCount>80</MaxRegCount>
-    </CudaCompile>
+    <CudaCompile />
     <CudaCompile>
       <PtxAsOptionV>true</PtxAsOptionV>
       <Keep>true</Keep>
@@ -182,6 +180,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       </Include>
       <Optimization>O2</Optimization>
       <KeepDir>$(CudaIntDir)\temp\$(PlatformTarget)</KeepDir>
+      <MaxRegCount>128</MaxRegCount>
     </CudaCompile>
     <CudaLink>
       <PerformDeviceLink>false</PerformDeviceLink>
@@ -217,9 +216,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile>
       <CInterleavedPTX>false</CInterleavedPTX>
     </CudaCompile>
-    <CudaCompile>
-      <MaxRegCount>80</MaxRegCount>
-    </CudaCompile>
+    <CudaCompile />
     <CudaCompile>
       <PtxAsOptionV>true</PtxAsOptionV>
       <Keep>true</Keep>
@@ -229,6 +226,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <Optimization>O2</Optimization>
       <KeepDir>$(CudaIntDir)\temp\$(PlatformTarget)</KeepDir>
+      <MaxRegCount>128</MaxRegCount>
     </CudaCompile>
     <CudaLink>
       <PerformDeviceLink>false</PerformDeviceLink>

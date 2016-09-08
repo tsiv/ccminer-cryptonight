@@ -8,7 +8,7 @@
 #define GROESTL_ROUNDS512 10
 #define GROESTL_HASH_BIT_LEN 256
 
-#define GROESTL_ROTL32(v, n) ((((v)<<(n))|((v)>>(32-(n))))&li_32(ffffffff))
+#define GROESTL_ROTL32(v, n) ROTL32(v, n)
 
 
 #define li_32(h) 0x##h##u
@@ -105,7 +105,7 @@ const uint32_t h_groestl_T[512] = {0xa5f432c6, 0xc6a597f4, 0x84976ff8, 0xf884eb9
    y[i] = tu;						\
    y[i+1] = tl;
 
-__device__ void cn_groestl_RND512P(uint8_t *x, uint32_t *y, uint32_t r)
+__device__ void cn_groestl_RND512P(uint8_t * __restrict__ x, uint32_t * __restrict__ y, uint32_t r)
 {
     uint32_t temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp;
     uint32_t* x32 = (uint32_t*)x;
@@ -127,7 +127,7 @@ __device__ void cn_groestl_RND512P(uint8_t *x, uint32_t *y, uint32_t r)
     GROESTL_COLUMN(x,y,14, 14,  0,  2,  4,  7,  9, 11, 13, temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp);
 }
 
-__device__ void cn_groestl_RND512Q(uint8_t *x, uint32_t *y, uint32_t r)
+__device__ void cn_groestl_RND512Q(uint8_t * __restrict__ x, uint32_t * __restrict__ y, uint32_t r)
 {
     uint32_t temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp;
     uint32_t* x32 = (uint32_t*)x;
@@ -157,7 +157,7 @@ __device__ void cn_groestl_RND512Q(uint8_t *x, uint32_t *y, uint32_t r)
     GROESTL_COLUMN(x,y,14,  0,  4,  8, 12, 15,  3,  7, 11, temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp);
 }
 
-__device__ void cn_groestl_F512(uint32_t *h, const uint32_t *m) 
+__device__ void cn_groestl_F512(uint32_t * __restrict__ h, const uint32_t * __restrict__ m)
 {
     int i;
     uint32_t Ptmp[2*GROESTL_COLS512];
@@ -221,8 +221,8 @@ __device__ void cn_groestl_outputtransformation(groestlHashState *ctx)
         ctx->chaining[j] ^= temp[j];
 }
 
-__device__ void cn_groestl_transform(groestlHashState *ctx,
-	       const uint8_t *input, 
+__device__ void cn_groestl_transform(groestlHashState * __restrict__ ctx,
+																		 const uint8_t * __restrict__ input,
 	       int msglen) 
 {
     for (; msglen >= GROESTL_SIZE512; msglen -= GROESTL_SIZE512, input += GROESTL_SIZE512) {
@@ -232,8 +232,8 @@ __device__ void cn_groestl_transform(groestlHashState *ctx,
     }
 }
 
-__device__ void cn_groestl_final(groestlHashState* ctx,
-		 BitSequence* output)
+__device__ void cn_groestl_final(groestlHashState*  __restrict__ ctx,
+																 BitSequence* __restrict__  output)
 {
     int i, j = 0, hashbytelen = GROESTL_HASH_BIT_LEN/8;
     uint8_t *s = (BitSequence*)ctx->chaining;
@@ -283,8 +283,8 @@ __device__ void cn_groestl_final(groestlHashState* ctx,
     }
 }
 
-__device__ void cn_groestl_update(groestlHashState* ctx,
-		  const BitSequence* input, DataLength databitlen) 
+__device__ void cn_groestl_update(groestlHashState* __restrict__ ctx,
+																	const BitSequence* __restrict__ input, DataLength databitlen)
 {
     int index = 0;
     int msglen = (int)(databitlen/8);
@@ -333,7 +333,7 @@ __device__ void cn_groestl_init(groestlHashState* ctx)
     ctx->bits_in_last_byte = 0;
 }
 
-__device__ void cn_groestl(const BitSequence *data, DataLength len, BitSequence *hashval)
+__device__ void cn_groestl(const BitSequence * __restrict__ data, DataLength len, BitSequence * __restrict__ hashval)
 {
     DataLength databitlen = len << 3;
     groestlHashState context;

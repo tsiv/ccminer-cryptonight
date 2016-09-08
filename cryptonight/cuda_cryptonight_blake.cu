@@ -11,7 +11,7 @@ typedef struct {
 #define U32TO8(p, v) \
     (p)[0] = (uint8_t)((v) >> 24); (p)[1] = (uint8_t)((v) >> 16); \
     (p)[2] = (uint8_t)((v) >>  8); (p)[3] = (uint8_t)((v)      );
-#define BLAKE_ROT(x,n) (((x)<<(32-n))|((x)>>(n)))
+#define BLAKE_ROT(x,n) ROTL32(x, n)
 #define BLAKE_G(a,b,c,d,e)                                      \
     v[a] += (m[d_blake_sigma[i][e]] ^ d_blake_cst[d_blake_sigma[i][e+1]]) + v[b]; \
     v[d] = BLAKE_ROT(v[d] ^ v[a],16);                           \
@@ -49,7 +49,8 @@ const uint32_t h_blake_cst[16] = {
     0xC0AC29B7, 0xC97C50DD, 0x3F84D5B5, 0xB5470917
 };
 
-__device__ void cn_blake_compress(blake_state *S, const uint8_t *block) {
+__device__ void cn_blake_compress(blake_state * __restrict__ S, const uint8_t * __restrict__ block)
+{
     uint32_t v[16], m[16], i;
 
     for (i = 0; i < 16; ++i) m[i] = U8TO32(block + i * 4);
@@ -85,7 +86,7 @@ __device__ void cn_blake_compress(blake_state *S, const uint8_t *block) {
     for (i = 0; i < 8;  ++i) S->h[i] ^= S->s[i % 4];
 }
 
-__device__ void cn_blake_update(blake_state *S, const uint8_t *data, uint64_t datalen)
+__device__ void cn_blake_update(blake_state * __restrict__ S, const uint8_t * __restrict__ data, uint64_t datalen)
 {
     int left = S->buflen >> 3;
     int fill = 64 - left;
@@ -116,7 +117,7 @@ __device__ void cn_blake_update(blake_state *S, const uint8_t *data, uint64_t da
     }
 }
 
-__device__ void cn_blake_final(blake_state *S, uint8_t *digest)
+__device__ void cn_blake_final(blake_state * __restrict__ S, uint8_t * __restrict__ digest)
 {
     const uint8_t padding[] = {
         0x80,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -160,7 +161,7 @@ __device__ void cn_blake_final(blake_state *S, uint8_t *digest)
     U32TO8(digest + 28, S->h[7]);
 }
 
-__device__ void cn_blake(const uint8_t *in, uint64_t inlen, uint8_t *out)
+__device__ void cn_blake(const uint8_t * __restrict__ in, uint64_t inlen, uint8_t * __restrict__ out)
 {
     blake_state bs;
     blake_state *S = (blake_state *)&bs;

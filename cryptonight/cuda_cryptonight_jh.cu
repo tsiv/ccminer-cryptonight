@@ -162,7 +162,7 @@ __device__ void cn_jh_F8(jhHashState *state)
       for (i = 0; i < 8; i++)  state->x[(8+i) >> 1][(8+i) & 1] ^= ((uint64_t *)state->buffer)[i];
 }
 
-__device__ void cn_jh_update(jhHashState *state, const BitSequence *data, DataLength databitlen)
+__device__ void cn_jh_update(jhHashState * __restrict__ state, const BitSequence * __restrict__ data, DataLength databitlen)
 {
       DataLength index;
 
@@ -201,7 +201,7 @@ __device__ void cn_jh_update(jhHashState *state, const BitSequence *data, DataLe
 }
 
 /*pad the message, process the padded block(s), truncate the hash value H to obtain the message digest*/
-__device__ void cn_jh_final(jhHashState *state, BitSequence *hashval)
+__device__ void cn_jh_final(jhHashState * __restrict__ state, BitSequence * __restrict__ hashval)
 {
       unsigned int i;
       //uint32_t *bufptr = (uint32_t *)state->buffer;
@@ -256,7 +256,7 @@ __device__ void cn_jh_init(jhHashState *state, int hashbitlen)
     memcpy(state->x, d_JH256_H0, 128);
 }
 
-__device__ void cn_jh(const BitSequence *data, DataLength len, BitSequence *hashval)
+__device__ void cn_jh(const BitSequence * __restrict__ data, DataLength len, BitSequence * __restrict__ hashval)
 {
     int hashbitlen = 256;
     DataLength databitlen = len << 3;

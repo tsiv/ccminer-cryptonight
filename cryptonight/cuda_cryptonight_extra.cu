@@ -43,7 +43,7 @@ const uint8_t sub_byte[16][16] = {
 	{0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16}
 };
 
-__device__ __forceinline__ void cryptonight_aes_set_key(uint32_t *key, const uint32_t *data)
+__device__ __forceinline__ void cryptonight_aes_set_key(uint32_t * __restrict__ key, const uint32_t * __restrict__ data)
 {
 	int i, j;
 	const int key_base = 8;
@@ -76,7 +76,7 @@ __device__ __forceinline__ void cryptonight_aes_set_key(uint32_t *key, const uin
 	}
 }
 
-__global__ void cryptonight_extra_gpu_prepare(int threads, uint32_t *d_input, uint32_t startNonce, struct cryptonight_gpu_ctx *d_ctx)
+__global__ void cryptonight_extra_gpu_prepare(int threads, uint32_t * __restrict__ d_input, uint32_t startNonce, struct cryptonight_gpu_ctx * __restrict__ d_ctx)
 {
 	int thread = (blockDim.x * blockIdx.x + threadIdx.x);
 
@@ -98,7 +98,7 @@ __global__ void cryptonight_extra_gpu_prepare(int threads, uint32_t *d_input, ui
 	}
 }
 
-__global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, uint32_t *d_target, uint32_t *resNonce, struct cryptonight_gpu_ctx *d_ctx)
+__global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, uint32_t * __restrict__ d_target, uint32_t * __restrict__ resNonce, struct cryptonight_gpu_ctx * __restrict__ d_ctx)
 {
 	int thread = (blockDim.x * blockIdx.x + threadIdx.x);
 
