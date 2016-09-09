@@ -11,7 +11,7 @@ typedef struct {
 #define U32TO8(p, v) \
     (p)[0] = (uint8_t)((v) >> 24); (p)[1] = (uint8_t)((v) >> 16); \
     (p)[2] = (uint8_t)((v) >>  8); (p)[3] = (uint8_t)((v)      );
-#define BLAKE_ROT(x,n) ROTL32(x, n)
+#define BLAKE_ROT(x,n) ROTR32(x, n)
 #define BLAKE_G(a,b,c,d,e)                                      \
     v[a] += (m[d_blake_sigma[i][e]] ^ d_blake_cst[d_blake_sigma[i][e+1]]) + v[b]; \
     v[d] = BLAKE_ROT(v[d] ^ v[a],16);                           \
