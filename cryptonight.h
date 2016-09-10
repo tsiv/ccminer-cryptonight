@@ -1,3 +1,20 @@
+#ifdef __INTELLISENSE__ 
+#define __CUDA_ARCH__ 520
+/* avoid red underlining */
+
+struct uint3
+{
+	unsigned int x, y, z;
+};
+
+struct uint3  threadIdx;
+struct uint3  blockIdx;
+struct uint3  blockDim;
+#define __funnelshift_r(a,b,c) 1
+#define __syncthreads()
+#define asm(x)
+#define __shfl(a,b,c) 1
+#endif
 
 #define MEMORY         (1 << 21) // 2 MiB / 2097152 B
 #define ITER           (1 << 20) // 1048576

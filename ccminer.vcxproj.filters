@@ -158,6 +158,9 @@
     <ClInclude Include="crypto\skein_port.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="crypto\hash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="cryptonight\cuda_cryptonight_extra.cu">
@@ -167,6 +170,24 @@
       <Filter>Source Files\CUDA</Filter>
     </CudaCompile>
     <CudaCompile Include="cryptonight\cryptonight.cu">
+      <Filter>Source Files\CUDA</Filter>
+    </CudaCompile>
+    <CudaCompile Include="cryptonight\cuda_cryptonight_aes.cu">
+      <Filter>Source Files\CUDA</Filter>
+    </CudaCompile>
+    <CudaCompile Include="cryptonight\cuda_cryptonight_blake.cu">
+      <Filter>Source Files\CUDA</Filter>
+    </CudaCompile>
+    <CudaCompile Include="cryptonight\cuda_cryptonight_groestl.cu">
+      <Filter>Source Files\CUDA</Filter>
+    </CudaCompile>
+    <CudaCompile Include="cryptonight\cuda_cryptonight_jh.cu">
+      <Filter>Source Files\CUDA</Filter>
+    </CudaCompile>
+    <CudaCompile Include="cryptonight\cuda_cryptonight_keccak.cu">
+      <Filter>Source Files\CUDA</Filter>
+    </CudaCompile>
+    <CudaCompile Include="cryptonight\cuda_cryptonight_skein.cu">
       <Filter>Source Files\CUDA</Filter>
     </CudaCompile>
   </ItemGroup>
