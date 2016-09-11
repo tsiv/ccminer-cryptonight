@@ -169,11 +169,11 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
 		{
 
 			j = (a[0] & 0x1FFFF0) >> 2;
-			cn_aes_single_round(sharedMemory, (uint8_t *)&long_state[j], c, a);
+			cn_aes_single_round(sharedMemory, &long_state[j], c, a);
 			XOR_BLOCKS_DST(c, b, &long_state[j]);
 			MUL_SUM_XOR_DST(c, a, (uint8_t *)&long_state[(c[0] & 0x1FFFF0) >> 2]);
 			j = (a[0] & 0x1FFFF0) >> 2;
-			cn_aes_single_round(sharedMemory, (uint8_t *)&long_state[j], b, a);
+			cn_aes_single_round(sharedMemory, &long_state[j], b, a);
 			XOR_BLOCKS_DST(b, c, &long_state[j]);
 			MUL_SUM_XOR_DST(b, a, &long_state[(b[0] & 0x1FFFF0) >> 2]);
 		}
