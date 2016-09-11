@@ -1,3 +1,6 @@
+#pragma once
+#include <cuda_runtime.h>
+
 #ifdef __INTELLISENSE__ 
 #define __CUDA_ARCH__ 520
 /* avoid red underlining */
@@ -141,6 +144,17 @@ struct cryptonight_gpu_ctx {
     uint32_t key2[40];
     uint32_t text[32];
 };
+
+extern int device_map[8];
+static inline void exit_if_cudaerror(int thr_id, const char *file, int line)
+{
+	cudaError_t err = cudaGetLastError();
+	if(err != cudaSuccess)
+	{
+		printf("\nGPU %d: %s\n%s line %d\n", device_map[thr_id], cudaGetErrorString(err), file, line);
+		exit(1);
+	}
+}
 
 void hash_permutation(union hash_state *state);
 void hash_process(union hash_state *state, const uint8_t *buf, size_t count);

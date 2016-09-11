@@ -9,8 +9,9 @@ extern "C"
 {
 #include "cpuminer-config.h"
 #include "miner.h"
-#include "cryptonight.h"
 }
+#include "cryptonight.h"
+
 
 extern char *device_name[8];
 extern int device_arch[8][2];
@@ -176,11 +177,6 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 		}
 		cryptonight_core_cpu_init(thr_id, throughput);
 		cryptonight_extra_cpu_init(thr_id);
-		err = cudaGetLastError();
-		if(err != cudaSuccess)
-		{
-			applog(LOG_ERR, "GPU %d: %s", device_map[thr_id], cudaGetErrorString(err));
-		}
 
 		init[thr_id] = true;
 	}
@@ -194,12 +190,6 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 		cryptonight_extra_cpu_prepare(thr_id, throughput, nonce, d_ctx[thr_id]);
 		cryptonight_core_cpu_hash(thr_id, cn_blocks, cn_threads, d_long_state[thr_id], d_ctx[thr_id]);
 		cryptonight_extra_cpu_final(thr_id, throughput, nonce, &foundNonce, d_ctx[thr_id]);
-
-		err = cudaGetLastError();
-		if(err != cudaSuccess)
-		{
-			applog(LOG_ERR, "GPU %d: %s", device_map[thr_id], cudaGetErrorString(err));
-		}
 
 		if(foundNonce < 0xffffffff)
 		{
