@@ -156,8 +156,7 @@ __global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, ui
 		}
 
 		if(rc == true)
-			if(resNonce[0] > nonce)
-				resNonce[0] = nonce;
+			resNonce[0] = nonce;
 	}
 }
 
