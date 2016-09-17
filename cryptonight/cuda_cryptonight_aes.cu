@@ -274,12 +274,12 @@ static __constant__ uint32_t d_t_fn[1024] =
     y[2] = (k)[2]  ^ (t_fn0(x[2] & 0xff) ^ t_fn1((x[3] >> 8) & 0xff) ^ t_fn2((x[0] >> 16) & 0xff) ^ t_fn3((x[1] >> 24) & 0xff)); \
     y[3] = (k)[3]  ^ (t_fn0(x[3] & 0xff) ^ t_fn1((x[0] >> 8) & 0xff) ^ t_fn2((x[1] >> 16) & 0xff) ^ t_fn3((x[2] >> 24) & 0xff));
 
-__device__ __forceinline__ void cn_aes_single_round(uint32_t * __restrict__ sharedMemory, const uint32_t * __restrict__ in, uint32_t * __restrict__ out, const uint32_t * __restrict__ expandedKey)
+__device__ __forceinline__ static void cn_aes_single_round(uint32_t * __restrict__ sharedMemory, const uint32_t * __restrict__ in, uint32_t * __restrict__ out, const uint32_t * __restrict__ expandedKey)
 {
     round(sharedMemory, out, in, expandedKey);
 }
 
-__device__ __forceinline__ void cn_aes_pseudo_round_mut(const uint32_t * __restrict__ sharedMemory, uint32_t * __restrict__ val, const uint32_t * __restrict__ expandedKey)
+__device__ __forceinline__ static void cn_aes_pseudo_round_mut(const uint32_t * __restrict__ sharedMemory, uint32_t * __restrict__ val, const uint32_t * __restrict__ expandedKey)
 {
     uint32_t b1[4];
     round(sharedMemory, b1, val, expandedKey);
@@ -299,7 +299,7 @@ static void cn_aes_cpu_init()
 	/*cudaMemcpyToSymbol( d_t_fn, t_fn, sizeof(t_fn), 0, cudaMemcpyHostToDevice);*/
 }
 
-__device__ __forceinline__ void cn_aes_gpu_init(uint32_t *sharedMemory)
+__device__ __forceinline__ static void cn_aes_gpu_init(uint32_t *sharedMemory)
 {
 	if(blockDim.x >= 32)
 	{
