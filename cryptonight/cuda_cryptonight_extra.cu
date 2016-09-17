@@ -108,7 +108,7 @@ __global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, ui
 		uint32_t state[50];
 
 		MEMCPY8(state, &ctx->state, 25);
-		cn_keccakf((uint64_t *)state);
+		cn_keccakf2((uint64_t *)state);
 
 		switch(((uint8_t *)state)[0] & 0x03)
 		{
