@@ -45,33 +45,31 @@ __constant__ uint8_t d_sub_byte[16][16] =
 __device__ __forceinline__ void cryptonight_aes_set_key(uint32_t * __restrict__ key, const uint32_t * __restrict__ data)
 {
 	int i, j;
-	const int key_base = 8;
 	uint8_t temp[4];
-	const uint32_t aes_gf[] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
+	const uint32_t aes_gf[] =
+	{
+		0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
+	};
 
 	MEMSET4(key, 0, 40);
 	MEMCPY4(key, data, 8);
-
-	for(i = key_base; i < 40; i++)
+#pragma unroll
+	for(i = 8; i < 40; i++)
 	{
-
 		*(uint32_t *)temp = key[i - 1];
-
-		if(i % key_base == 0)
+		if(i % 8 == 0)
 		{
-
 			*(uint32_t *)temp = ROTR32(*(uint32_t *)temp, 8);
-
 			for(j = 0; j < 4; j++)
 				temp[j] = d_sub_byte[(temp[j] >> 4) & 0x0f][temp[j] & 0x0f];
-
-			*(uint32_t *)temp ^= aes_gf[i / key_base - 1];
+			*(uint32_t *)temp ^= aes_gf[i / 8 - 1];
 		}
-		else if(i % key_base == 4)
-			for(j = 0; j < 4; j++)
-				temp[j] = d_sub_byte[(temp[j] >> 4) & 0x0f][temp[j] & 0x0f];
-
-		key[i] = key[(i - key_base)] ^ *(uint32_t *)temp;
+		else
+			if(i % 8 == 4)
+#pragma unroll
+				for(j = 0; j < 4; j++)
+					temp[j] = d_sub_byte[(temp[j] >> 4) & 0x0f][temp[j] & 0x0f];
+		key[i] = key[(i - 8)] ^ *(uint32_t *)temp;
 	}
 }
 
