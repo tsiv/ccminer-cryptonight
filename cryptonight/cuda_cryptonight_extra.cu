@@ -22,9 +22,8 @@ static uint32_t *d_resultNonce[8];
 #include "cuda_cryptonight_jh.cu"
 #include "cuda_cryptonight_skein.cu"
 
-__constant__ uint8_t d_sub_byte[16][16];
-
-const uint8_t sub_byte[16][16] = {
+__constant__ uint8_t d_sub_byte[16][16] =
+{
 	{0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76},
 	{0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0},
 	{0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15},
@@ -172,13 +171,6 @@ __host__ void cryptonight_extra_cpu_init(int thr_id)
 	cudaMalloc(&d_input[thr_id], 19 * sizeof(uint32_t));
 	cudaMalloc(&d_target[thr_id], 8 * sizeof(uint32_t));
 	cudaMalloc(&d_resultNonce[thr_id], sizeof(uint32_t));
-	cudaMemcpyToSymbol(keccakf_rndc, h_keccakf_rndc, sizeof(h_keccakf_rndc), 0, cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol(d_sub_byte, sub_byte, sizeof(sub_byte), 0, cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol(d_blake_sigma, h_blake_sigma, sizeof(h_blake_sigma), 0, cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol(d_blake_cst, h_blake_cst, sizeof(h_blake_cst), 0, cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol(d_groestl_T, h_groestl_T, sizeof(h_groestl_T), 0, cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol(d_JH256_H0, h_JH256_H0, sizeof(h_JH256_H0), 0, cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol(d_E8_rc, h_E8_rc, sizeof(h_E8_rc), 0, cudaMemcpyHostToDevice);
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 }
 
