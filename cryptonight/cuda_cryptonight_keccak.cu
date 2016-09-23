@@ -40,7 +40,7 @@ __device__ __forceinline__ void cn_keccakf2(uint64_t *s)
 
 	for(i = 0; i < 24; ++i)
 	{
-		uint64_t bc[5], tmpxor[5], tmp1, tmp2, x;
+		uint64_t bc[5], tmpxor[5], tmp1, tmp2;
 
 		tmpxor[0] = s[0] ^ s[5] ^ s[10] ^ s[15] ^ s[20];
 		tmpxor[1] = s[1] ^ s[6] ^ s[11] ^ s[16] ^ s[21];
