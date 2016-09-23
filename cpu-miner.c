@@ -157,6 +157,7 @@ static const char *algo_names[] = {
 
 bool opt_debug = false;
 bool opt_protocol = false;
+bool opt_keepalive = false;
 bool opt_benchmark = false;
 bool want_longpoll = true;
 bool have_longpoll = false;
@@ -268,6 +269,7 @@ Usage: " PROGRAM_NAME " [OPTIONS]\n\
 	  -p, --pass=PASSWORD   password for mining server\n\
         --cert=FILE       certificate for mining server using SSL\n\
 	  -x, --proxy=[PROTOCOL://]HOST[:PORT]  connect through a proxy\n\
+    -k, --keepalive       send keepalive requests to avoid a stratum timeout\n\
     -t, --threads=N       number of miner threads (default: number of nVidia GPUs)\n\
 	  -r, --retries=N       number of times to retry if a network call fails\n\
                           (default: retry indefinitely)\n\
@@ -302,7 +304,7 @@ static char const short_options[] =
 #ifdef HAVE_SYSLOG_H
 "S"
 #endif
-"a:c:Dhp:Px:qr:R:s:t:T:o:u:O:Vd:f:ml:";
+"a:c:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:ml:";
 
 static struct option const options[] = {
 	{"algo", 1, NULL, 'a'},
@@ -314,6 +316,7 @@ static struct option const options[] = {
 	{"config", 1, NULL, 'c'},
 	{"debug", 0, NULL, 'D'},
 	{"help", 0, NULL, 'h'},
+	{"keepalive", 0, NULL, 'k'},
 	{"no-longpoll", 0, NULL, 1003},
 	{"no-stratum", 0, NULL, 1007},
 	{"pass", 1, NULL, 'p'},
@@ -1530,9 +1533,17 @@ static bool stratum_handle_response(char *buf)
 	if(jsonrpc_2)
 	{
 		json_t *status = json_object_get(res_val, "status");
+		const char *s = json_string_value(status);
+
+		// Keepalive response handling.
+		if( !strcmp(s, "KEEPALIVED") )
+		{
+			applog(LOG_INFO, "Keepalive recieved");
+			goto out;
+		}
+
 		if(status)
 		{
-			const char *s = json_string_value(status);
 			valid = !strcmp(s, "OK") && json_is_null(err_val);
 		}
 		else
@@ -1629,6 +1640,13 @@ static void *stratum_thread(void *userdata)
 					restart_threads();
 				}
 			}
+		}
+
+		// Should we send a keepalive?
+		if( opt_keepalive && !stratum_socket_full(&stratum, 90))
+		{
+			applog(LOG_INFO, "Keepalive send...");
+			stratum_keepalived(&stratum,rpc2_id);
 		}
 
 		if(!stratum_socket_full(&stratum, 120))
@@ -1733,6 +1751,10 @@ static void parse_arg(int key, char *arg)
 			}
 			break;
 		}
+		case 'k':
+			opt_keepalive = true ;
+			applog(LOG_INFO, "Keepalive actived"); 
+			break;
 		case 'q':
 			opt_quiet = true;
 			break;
