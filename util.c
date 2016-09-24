@@ -1441,7 +1441,7 @@ out:
 void hexdump(const char *what, void *data, const size_t datalen)
 {
 	char *padding;
-	int i, len;
+	size_t i, len;
 
 	len = strlen(what) + 3;
 	padding = (char *)malloc(len + 1);
@@ -1465,23 +1465,25 @@ void hexdump(const char *what, void *data, const size_t datalen)
 	free(padding);
 }
 
-bool stratum_keepalived(struct stratum_ctx *sctx, const char *rpc2_id) {
-	json_t *val = NULL, *res_val, *err_val;
-	char *s, *sret;
-	json_error_t err;
+bool stratum_keepalived(struct stratum_ctx *sctx, const char *rpc2_id)
+{
+	json_t *val = NULL;
+	char *s;
 	bool ret = false;
 
 	if(jsonrpc_2)
 	{
 		s = (char *)malloc(300 + strlen(rpc2_id));
+		if(s == NULL)
+			return ret;
 		snprintf(s, 128, "{\"method\": \"keepalived\", \"params\": {\"id\": \"%s\"}, \"id\":1}\r\n", rpc2_id);
 	}
 	else
 	{
-		return true ;
+		return true;
 	}
 
-	if (!stratum_send_line(sctx, s))
+	if(!stratum_send_line(sctx, s))
 	{
 		goto out;
 	}
