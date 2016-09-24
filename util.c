@@ -1473,7 +1473,7 @@ bool stratum_keepalived(struct stratum_ctx *sctx, const char *rpc2_id) {
 
 	if(jsonrpc_2)
 	{
-		s = malloc(300 + strlen(rpc2_id));
+		s = (char *)malloc(300 + strlen(rpc2_id));
 		snprintf(s, 128, "{\"method\": \"keepalived\", \"params\": {\"id\": \"%s\"}, \"id\":1}\r\n", rpc2_id);
 	}
 	else
