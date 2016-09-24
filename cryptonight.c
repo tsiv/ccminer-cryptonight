@@ -45,7 +45,7 @@ void hash_permutation(union hash_state *state) {
 }
 
 void hash_process(union hash_state *state, const uint8_t *buf, size_t count) {
-  keccak1600(buf, count, (uint8_t*)state);
+  keccak1600(buf, (int)count, (uint8_t*)state);
 }
 
 extern int fast_aesb_single_round(const uint8_t *in, uint8_t*out, const uint8_t *expandedKey);

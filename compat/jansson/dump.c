@@ -99,7 +99,7 @@ static int dump_string(const char *str, int ascii, dump_func dump, void *data)
         }
 
         if(pos != str) {
-            if(dump(str, pos - str, data))
+            if(dump(str, (int)(pos - str), data))
                 return -1;
         }
 

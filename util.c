@@ -632,7 +632,7 @@ static bool send_line(curl_socket_t sock, char *s)
 		FD_SET(sock, &wd);
 		if(select((int)sock + 1, NULL, &wd, NULL, &timeout) < 1)
 			return false;
-		n = send(sock, s + sent, len, 0);
+		n = send(sock, s + sent, (int)len, 0);
 		if(n < 0)
 		{
 			if(!socket_blocks())

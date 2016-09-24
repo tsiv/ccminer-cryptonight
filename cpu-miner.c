@@ -469,7 +469,7 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 		goto err_out;
 	}
 	const char *hexblob = json_string_value(tmp);
-	int blobLen = strlen(hexblob);
+	int blobLen = (int)strlen(hexblob);
 	if(blobLen % 2 != 0 || ((blobLen / 2) < 40 && blobLen != 0) || (blobLen / 2) > 128)
 	{
 		applog(LOG_ERR, "JSON invalid blob length");
@@ -2115,11 +2115,11 @@ int main(int argc, char *argv[])
 	struct thr_info *thr;
 	long flags;
 	int i;
-
+	/*
 #ifdef WIN32
 	SYSTEM_INFO sysinfo;
 #endif
-
+	*/
 	printf("    *** ccminer-cryptonight %s for nVidia GPUs by tsiv and KlausT ***\n", PROGRAM_VERSION);
 	printf(" based on ccMiner by Christian Buchner and Christian H.\n");
 	printf(" based on cpuminer-multi by LucasJones\n");

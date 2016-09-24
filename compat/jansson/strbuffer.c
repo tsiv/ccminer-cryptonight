@@ -56,7 +56,7 @@ char *strbuffer_steal_value(strbuffer_t *strbuff)
 
 int strbuffer_append(strbuffer_t *strbuff, const char *string)
 {
-    return strbuffer_append_bytes(strbuff, string, strlen(string));
+    return strbuffer_append_bytes(strbuff, string, (int)strlen(string));
 }
 
 int strbuffer_append_byte(strbuffer_t *strbuff, char byte)

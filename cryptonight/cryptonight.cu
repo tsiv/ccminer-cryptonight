@@ -77,8 +77,8 @@ extern "C" void cuda_deviceinfo()
 
 static bool substringsearch(const char *haystack, const char *needle, int &match)
 {
-	int hlen = strlen(haystack);
-	int nlen = strlen(needle);
+	int hlen = (int)strlen(haystack);
+	int nlen = (int)strlen(needle);
 	for(int i = 0; i < hlen; ++i)
 	{
 		if(haystack[i] == ' ') continue;
