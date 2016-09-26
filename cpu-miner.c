@@ -2123,7 +2123,7 @@ static void signal_handler(int sig)
 }
 #endif
 
-#define PROGRAM_VERSION "1.01"
+#define PROGRAM_VERSION "1.02"
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;
