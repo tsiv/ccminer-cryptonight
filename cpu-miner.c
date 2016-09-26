@@ -63,7 +63,7 @@ extern "C"
 #endif
 
 extern void cryptonight_hash(void* output, const void* input, size_t len);
-void parse_device_config(char *config, int *blocks, int *threads);
+void parse_device_config(int device, char *config, int *blocks, int *threads);
 
 #ifdef __linux /* Linux specific policy and affinity management */
 #include <sched.h>
