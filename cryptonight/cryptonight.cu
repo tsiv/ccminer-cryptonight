@@ -66,7 +66,12 @@ extern "C" void cuda_deviceinfo()
 	for(int i = 0; i < GPU_N; i++)
 	{
 		cudaDeviceProp props;
-		cudaGetDeviceProperties(&props, device_map[i]);
+		cudaError_t err = cudaGetDeviceProperties(&props, device_map[i]);
+		if(err != cudaSuccess)
+		{
+			printf("\nGPU %d: %s\n%s line %d\n", device_map[i], cudaGetErrorString(err), __FILE__, __LINE__);
+			exit(1);
+		}
 
 		device_name[i] = strdup(props.name);
 		device_mpcount[i] = props.multiProcessorCount;
