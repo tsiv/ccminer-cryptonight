@@ -95,14 +95,14 @@ __global__ void cryptonight_extra_gpu_prepare(int threads, uint32_t * __restrict
 	}
 }
 
-__global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, uint32_t * __restrict__ d_target, uint32_t * __restrict__ resNonce, struct cryptonight_gpu_ctx * __restrict__ d_ctx)
+__global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, const uint32_t * __restrict__ d_target, uint32_t * __restrict__ resNonce, struct cryptonight_gpu_ctx * __restrict__ d_ctx)
 {
-	int thread = (blockDim.x * blockIdx.x + threadIdx.x);
+	const int thread = blockDim.x * blockIdx.x + threadIdx.x;
 
 	if(thread < threads)
 	{
 		int i;
-		uint32_t nonce = startNonce + thread;
+		const uint32_t nonce = startNonce + thread;
 		struct cryptonight_gpu_ctx *ctx = &d_ctx[thread];
 		uint32_t hash[8];
 		uint32_t state[50];
@@ -153,7 +153,11 @@ __global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, ui
 		}
 
 		if(rc == true)
-			resNonce[0] = nonce;
+		{
+			uint32_t tmp = atomicExch(resNonce, nonce);
+			if(tmp != 0xffffffff)
+				resNonce[1] = tmp;
+		}
 	}
 }
 
@@ -168,7 +172,7 @@ __host__ void cryptonight_extra_cpu_init(int thr_id)
 {
 	cudaMalloc(&d_input[thr_id], 19 * sizeof(uint32_t));
 	cudaMalloc(&d_target[thr_id], 8 * sizeof(uint32_t));
-	cudaMalloc(&d_resultNonce[thr_id], sizeof(uint32_t));
+	cudaMalloc(&d_resultNonce[thr_id], 2*sizeof(uint32_t));
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 }
 
@@ -190,13 +194,13 @@ __host__ void cryptonight_extra_cpu_final(int thr_id, int threads, uint32_t star
 	dim3 grid((threads + threadsperblock - 1) / threadsperblock);
 	dim3 block(threadsperblock);
 
-	cudaMemset(d_resultNonce[thr_id], 0xFF, sizeof(uint32_t));
+	cudaMemset(d_resultNonce[thr_id], 0xFF, 2*sizeof(uint32_t));
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 
 	cryptonight_extra_gpu_final << <grid, block >> >(threads, startNonce, d_target[thr_id], d_resultNonce[thr_id], d_ctx);
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 
-	cudaMemcpy(resnonce, d_resultNonce[thr_id], sizeof(uint32_t), cudaMemcpyDeviceToHost);
+	cudaMemcpy(resnonce, d_resultNonce[thr_id], 2*sizeof(uint32_t), cudaMemcpyDeviceToHost);
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 }
 

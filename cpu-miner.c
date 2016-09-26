@@ -1320,8 +1320,9 @@ static void *miner_thread(void *userdata)
 		hashes_done = 0;
 		gettimeofday(&tv_start, NULL);
 
+		uint32_t results[2];
 		/* scan nonces for a proof-of-work hash */
-		rc = scanhash_cryptonight(thr_id, work.data, work.target,	max_nonce, &hashes_done);
+		rc = scanhash_cryptonight(thr_id, work.data, work.target,	max_nonce, &hashes_done, results);
 
 		/* record scanhash elapsed time */
 		gettimeofday(&tv_end, NULL);
@@ -1367,8 +1368,18 @@ static void *miner_thread(void *userdata)
 		}
 
 		/* if nonce found, submit work */
-		if(rc && !opt_benchmark && !submit_work(mythr, &work))
-			break;
+		if(rc && !opt_benchmark)
+		{
+			uint32_t backup = *nonceptr;
+			*nonceptr = results[0];
+			submit_work(mythr, &work);
+			if(rc > 1)
+			{
+				*nonceptr = results[1];
+				submit_work(mythr, &work);
+			}
+			*nonceptr = backup;
+		}
 	}
 
 out:

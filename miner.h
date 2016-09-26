@@ -196,7 +196,7 @@ void sha256_transform_8way(uint32_t *state, const uint32_t *block, int swap);
 
 extern int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 	const uint32_t *ptarget, uint32_t max_nonce,
-	unsigned long *hashes_done);
+	unsigned long *hashes_done, uint32_t *results);
 
 extern void cryptonight_hash(void* output, const void* input, size_t len);
 

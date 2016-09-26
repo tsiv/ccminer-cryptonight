@@ -138,9 +138,10 @@ extern "C" void cryptonight_hash(void* output, const void* input, size_t len);
 
 extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 																		const uint32_t *ptarget, uint32_t max_nonce,
-																		unsigned long *hashes_done)
+																		unsigned long *hashes_done, uint32_t *results)
 {
 	cudaError_t err;
+	int res;
 	uint32_t *nonceptr = (uint32_t*)(((char*)pdata) + 39);
 	const uint32_t first_nonce = *nonceptr;
 	uint32_t nonce = *nonceptr;
@@ -190,31 +191,48 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 
 	do
 	{
-		uint32_t foundNonce;
+		uint32_t foundNonce[2];
 
 		cryptonight_extra_cpu_prepare(thr_id, throughput, nonce, d_ctx[thr_id]);
 		cryptonight_core_cpu_hash(thr_id, cn_blocks, cn_threads, d_long_state[thr_id], d_ctx[thr_id]);
-		cryptonight_extra_cpu_final(thr_id, throughput, nonce, &foundNonce, d_ctx[thr_id]);
+		cryptonight_extra_cpu_final(thr_id, throughput, nonce, foundNonce, d_ctx[thr_id]);
 
-		if(foundNonce < 0xffffffff)
+		if(foundNonce[0] < 0xffffffff)
 		{
 			uint32_t vhash64[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 			uint32_t tempdata[19];
 			memcpy(tempdata, pdata, 76);
 			uint32_t *tempnonceptr = (uint32_t*)(((char*)tempdata) + 39);
-			*tempnonceptr = foundNonce;
+			*tempnonceptr = foundNonce[0];
 #if !defined _WIN64 && !defined _LP64 /* hash is broken in 64bit builds */
 			cryptonight_hash(vhash64, tempdata, 76);
 #endif
 			if((vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 			{
-				*nonceptr = foundNonce;
+				res = 1;
+				results[0] = foundNonce[0];
 				*hashes_done = nonce - first_nonce + throughput;
-				return 1;
+				if(foundNonce[1] < 0xffffffff)
+				{
+					*tempnonceptr = foundNonce[1];
+#if !defined _WIN64 && !defined _LP64 /* hash is broken in 64bit builds */
+					cryptonight_hash(vhash64, tempdata, 76);
+#endif
+					if((vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
+					{
+						res++;
+						results[1] = foundNonce[1];
+					}
+					else
+					{
+						applog(LOG_INFO, "GPU #%d: result for nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[1]);
+					}
+				}
+				return res;
 			}
 			else
 			{
-				applog(LOG_INFO, "GPU #%d: result for nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce);
+				applog(LOG_INFO, "GPU #%d: result for nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[0]);
 			}
 		}
 		if(nonce > 0xffffffff - throughput)
