@@ -206,7 +206,7 @@ int stratum_thr_id = -1;
 struct work_restart *work_restart = NULL;
 static struct stratum_ctx stratum;
 int opt_cn_threads = 8;
-int opt_cn_blocks = 40;
+int opt_cn_blocks = 0;
 
 bool jsonrpc_2 = false;
 static char rpc2_id[64] = "";
@@ -1213,6 +1213,9 @@ static void *miner_thread(void *userdata)
 		affine_to_cpu(thr_id, thr_id % num_processors);
 	}
 
+	if(device_config[thr_id][0] == 0)
+		device_config[thr_id][0] = 4 * device_mpcount[thr_id];
+
 	applog(LOG_INFO, "GPU #%d: %s (%d SMX), using %d blocks of %d threads",
 				 device_map[thr_id], device_name[thr_id], device_mpcount[thr_id], device_config[thr_id][0], device_config[thr_id][1]);
 
@@ -1686,7 +1689,7 @@ static void show_usage_and_exit(int status)
 	exit(status);
 }
 
-void parse_device_config(char *config, int *blocks, int *threads)
+void parse_device_config(int device, char *config, int *blocks, int *threads)
 {
 	char *p;
 	int tmp_blocks, tmp_threads;
@@ -1715,7 +1718,7 @@ void parse_device_config(char *config, int *blocks, int *threads)
 	return;
 
 usedefault:
-	*blocks = opt_cn_blocks;
+	*blocks = 4 * device_mpcount[device];
 	*threads = opt_cn_threads;
 	return;
 
@@ -1957,7 +1960,7 @@ static void parse_arg(int key, char *arg)
 
 			for(i = 0; i < 8; i++)
 			{
-				parse_device_config(tmp_config[i], &tmp_blocks, &tmp_threads);
+				parse_device_config(i, tmp_config[i], &tmp_blocks, &tmp_threads);
 				device_config[i][0] = tmp_blocks;
 				device_config[i][1] = tmp_threads;
 			}
