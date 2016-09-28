@@ -126,32 +126,10 @@ struct workio_cmd
 
 typedef enum
 {
-	ALGO_HEAVY,		/* Heavycoin hash */
-	ALGO_MJOLLNIR,		/* Mjollnir hash */
-	ALGO_FUGUE256,		/* Fugue256 */
-	ALGO_GROESTL,
-	ALGO_MYR_GR,
-	ALGO_JACKPOT,
-	ALGO_QUARK,
-	ALGO_ANIME,
-	ALGO_NIST5,
-	ALGO_X11,
-	ALGO_X13,
 	ALGO_CRYPTONIGHT
 } sha256_algos;
 
 static const char *algo_names[] = {
-	"heavy",
-	"mjollnir",
-	"fugue256",
-	"groestl",
-	"myr-gr",
-	"jackpot",
-	"quark",
-	"anime",
-	"nist5",
-	"x11",
-	"x13",
 	"cryptonight"
 };
 
@@ -553,13 +531,6 @@ static bool work_decode(const json_t *val, struct work *work)
 		applog(LOG_ERR, "JSON inval target");
 		goto err_out;
 	}
-	if(opt_algo == ALGO_HEAVY)
-	{
-		if(unlikely(!jobj_binary(val, "maxvote", &work->maxvote, sizeof(work->maxvote))))
-		{
-			work->maxvote = 1024;
-		}
-	}
 	else work->maxvote = 0;
 
 	for(i = 0; i < ARRAY_SIZE(work->data); i++)
@@ -629,7 +600,6 @@ err_out: return false;
 
 static void share_result(int result, const char *reason)
 {
-	char s[345];
 	double hashrate;
 	int i;
 
@@ -640,23 +610,10 @@ static void share_result(int result, const char *reason)
 	result ? accepted_count++ : rejected_count++;
 	pthread_mutex_unlock(&stats_lock);
 
-	if(opt_algo == ALGO_CRYPTONIGHT)
-	{
-		applog(LOG_INFO, "accepted: %lu/%lu (%.2f%%), %.2f H/s %s",
-					 accepted_count, accepted_count + rejected_count,
-					 100. * accepted_count / (accepted_count + rejected_count), hashrate,
-					 result ? "(yay!!!)" : "(booooo)");
-	}
-	else
-	{
-		sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.2f", 1e-3 * hashrate);
-		applog(LOG_INFO, "accepted: %lu/%lu (%.2f%%), %s khash/s %s",
-					 accepted_count,
-					 accepted_count + rejected_count,
-					 100. * accepted_count / (accepted_count + rejected_count),
-					 s,
-					 result ? "(yay!!!)" : "(booooo)");
-	}
+	applog(LOG_INFO, "accepted: %lu/%lu (%.2f%%), %.2f H/s %s",
+				 accepted_count, accepted_count + rejected_count,
+				 100. * accepted_count / (accepted_count + rejected_count), hashrate,
+				 result ? "(yay!!!)" : "(booooo)");
 	if(reason)
 		applog(LOG_DEBUG, "reject reason: %s", reason);
 }
@@ -704,18 +661,9 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 			noncestr = bin2hex((const unsigned char *)(&nonce), 4);
 			xnonce2str = bin2hex(work->xnonce2, work->xnonce2_len);
 			nvotestr = bin2hex((const unsigned char *)(&nvote), 2);
-			if(opt_algo == ALGO_HEAVY)
-			{
-				sprintf(s,
-								"{\"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"], \"id\":4}",
-								rpc_user, work->job_id, xnonce2str, ntimestr, noncestr, nvotestr);
-			}
-			else
-			{
-				sprintf(s,
-								"{\"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%s\", \"%s\"], \"id\":4}",
-								rpc_user, work->job_id, xnonce2str, ntimestr, noncestr);
-			}
+			sprintf(s,
+							"{\"method\": \"mining.submit\", \"params\": [\"%s\", \"%s\", \"%s\", \"%s\", \"%s\"], \"id\":4}",
+							rpc_user, work->job_id, xnonce2str, ntimestr, noncestr);
 			free(ntimestr);
 			free(xnonce2str);
 			free(nvotestr);
@@ -761,11 +709,8 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 
 			/* build hex string */
 
-			if(opt_algo != ALGO_HEAVY && opt_algo != ALGO_MJOLLNIR)
-			{
-				for(i = 0; i < ARRAY_SIZE(work->data); i++)
-					le32enc(work->data + i, work->data[i]);
-			}
+			for(i = 0; i < ARRAY_SIZE(work->data); i++)
+				le32enc(work->data + i, work->data[i]);
 			str = bin2hex((unsigned char *)work->data, sizeof(work->data));
 			if(unlikely(!str))
 			{
@@ -1185,7 +1130,6 @@ static void *miner_thread(void *userdata)
 	uint32_t end_nonce;
 	
 	unsigned char *scratchbuf = NULL;
-	char s[16];
 	int i;
 	static int rounds = 0;
 	if(jsonrpc_2)
@@ -1249,9 +1193,7 @@ static void *miner_thread(void *userdata)
 		{
 			/* obtain new work from internal workio thread */
 			pthread_mutex_lock(&g_work_lock);
-			if(!have_stratum && (!have_longpoll ||
-				time(NULL) >= g_work_time + LP_SCANTIME * 3 / 4 ||
-				*nonceptr >= end_nonce))
+			if(!have_longpoll || time(NULL) >= g_work_time + LP_SCANTIME * 3 / 4 || *nonceptr >= end_nonce)
 			{
 				if(unlikely(!get_work(mythr, &g_work)))
 				{
@@ -1260,12 +1202,7 @@ static void *miner_thread(void *userdata)
 					pthread_mutex_unlock(&g_work_lock);
 					goto out;
 				}
-				g_work_time = have_stratum ? 0 : time(NULL);
-			}
-			if(have_stratum)
-			{
-				pthread_mutex_unlock(&g_work_lock);
-				continue;
+				g_work_time = time(NULL);
 			}
 		}
 		if(jsonrpc_2)
@@ -1300,18 +1237,7 @@ static void *miner_thread(void *userdata)
 			max64 = g_work_time + (have_longpoll ? LP_SCANTIME : opt_scantime) - time(NULL);
 		max64 *= (int64_t)thr_hashrates[thr_id];
 		if(max64 <= 0)
-		{
-			switch(opt_algo)
-			{
-
-				case ALGO_JACKPOT:
-					max64 = 0x1fffLL; break;
-				case ALGO_CRYPTONIGHT:
-					max64 = 0x200LL; break;
-				default:
-					max64 = 0xfffffLL; break;
-			}
-		}
+			max64 = 0x200LL;
 		if((int64_t)(*nonceptr) + max64 > end_nonce)
 			max_nonce = end_nonce;
 		else
@@ -1330,25 +1256,12 @@ static void *miner_thread(void *userdata)
 		if(diff.tv_usec || diff.tv_sec)
 		{
 			pthread_mutex_lock(&stats_lock);
-			thr_hashrates[thr_id] =
-				hashes_done / (diff.tv_sec + 1e-6 * diff.tv_usec);
+			thr_hashrates[thr_id] = hashes_done / (diff.tv_sec + 1e-6 * diff.tv_usec);
 			pthread_mutex_unlock(&stats_lock);
 		}
 		if(!opt_quiet)
-		{
+			applog(LOG_INFO, "GPU #%d: %s, %.2f H/s", device_map[thr_id], device_name[thr_id], thr_hashrates[thr_id]);
 
-			if(opt_algo == ALGO_CRYPTONIGHT)
-			{
-				applog(LOG_INFO, "GPU #%d: %s, %.2f H/s", device_map[thr_id], device_name[thr_id], thr_hashrates[thr_id]);
-			}
-			else
-			{
-				sprintf(s, thr_hashrates[thr_id] >= 1e6 ? "%.0f" : "%.2f",
-								1e-3 * thr_hashrates[thr_id]);
-				applog(LOG_INFO, "GPU #%d: %s, %s khash/s",
-							 device_map[thr_id], device_name[thr_id], s);
-			}
-		}
 		if(opt_benchmark && thr_id == opt_n_threads - 1)
 		{
 			double hashrate = 0.;
@@ -1356,14 +1269,7 @@ static void *miner_thread(void *userdata)
 				hashrate += thr_hashrates[i];
 			if(i == opt_n_threads)
 			{
-
-				if(opt_algo == ALGO_CRYPTONIGHT)
 					applog(LOG_INFO, "Total: %.2f H/s", hashrate);
-				else
-				{
-					sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.2f", 1e-3 * hashrate);
-					applog(LOG_INFO, "Total: %s khash/s", s);
-				}
 			}
 		}
 
@@ -2062,12 +1968,6 @@ static void parse_config(void)
 			applog(LOG_ERR, "JSON option %s invalid",
 			options[i].name);
 	}
-
-	if(opt_algo == ALGO_HEAVY && opt_vote == 9999)
-	{
-		fprintf(stderr, "Heavycoin hash requires block reward vote parameter (see --vote)\n");
-		show_usage_and_exit(1);
-	}
 }
 
 static void parse_cmdline(int argc, char *argv[])
@@ -2092,14 +1992,6 @@ static void parse_cmdline(int argc, char *argv[])
 						argv[0], argv[optind]);
 		show_usage_and_exit(1);
 	}
-
-	if(opt_algo == ALGO_HEAVY && opt_vote == 9999)
-	{
-		fprintf(stderr, "%s: Heavycoin hash requires block reward vote parameter (see --vote)\n",
-						argv[0]);
-		show_usage_and_exit(1);
-	}
-
 	parse_config();
 }
 
@@ -2162,11 +2054,8 @@ int main(int argc, char *argv[])
 
 	cuda_deviceinfo();
 
-	if(opt_algo == ALGO_CRYPTONIGHT)
-	{
-		jsonrpc_2 = true;
-		applog(LOG_INFO, "Using JSON-RPC 2.0");
-	}
+	jsonrpc_2 = true;
+	applog(LOG_INFO, "Using JSON-RPC 2.0");
 
 	if(!opt_benchmark && !rpc_url)
 	{
