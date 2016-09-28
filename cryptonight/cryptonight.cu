@@ -145,7 +145,8 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 	uint32_t *nonceptr = (uint32_t*)(((char*)pdata) + 39);
 	const uint32_t first_nonce = *nonceptr;
 	uint32_t nonce = *nonceptr;
-	int cn_blocks = device_config[thr_id][0], cn_threads = device_config[thr_id][1];
+	int cn_blocks = device_config[thr_id][0];
+	int cn_threads = device_config[thr_id][1];
 	if(opt_benchmark)
 	{
 		((uint32_t*)ptarget)[7] = 0x0000ff;
@@ -204,9 +205,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 			memcpy(tempdata, pdata, 76);
 			uint32_t *tempnonceptr = (uint32_t*)(((char*)tempdata) + 39);
 			*tempnonceptr = foundNonce[0];
-#if !defined _WIN64 && !defined _LP64 /* hash is broken in 64bit builds */
 			cryptonight_hash(vhash64, tempdata, 76);
-#endif
 			if((vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 			{
 				res = 1;
@@ -215,9 +214,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 				if(foundNonce[1] < 0xffffffff)
 				{
 					*tempnonceptr = foundNonce[1];
-#if !defined _WIN64 && !defined _LP64 /* hash is broken in 64bit builds */
 					cryptonight_hash(vhash64, tempdata, 76);
-#endif
 					if((vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 					{
 						res++;
@@ -235,7 +232,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 				applog(LOG_INFO, "GPU #%d: result for nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[0]);
 			}
 		}
-		if(nonce > 0xffffffff - throughput)
+		if((nonce & 0x00ffffff) > 0x00ffffff - throughput)
 			nonce = max_nonce;
 		else
 			nonce += throughput;

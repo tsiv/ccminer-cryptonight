@@ -1447,22 +1447,23 @@ static bool stratum_handle_response(char *buf)
 	err_val = json_object_get(val, "error");
 	id_val = json_object_get(val, "id");
 
-	if(!id_val || json_is_null(id_val) || !res_val)
+	if(!id_val || json_is_null(id_val) || (!res_val && !err_val) )
 		goto out;
 
 	if(jsonrpc_2)
 	{
+		char *s;
 		json_t *status = json_object_get(res_val, "status");
-		const char *s = json_string_value(status);
+		if(status!=NULL)
+			s = (char*)json_string_value(status);
 
 		// Keepalive response handling.
-		if( !strcmp(s, "KEEPALIVED") )
+		if( status != NULL && strcmp(s, "KEEPALIVED") == 0 )
 		{
-			applog(LOG_INFO, "Keepalive recieved");
 			goto out;
 		}
 
-		if(status)
+		if(status != NULL)
 		{
 			valid = !strcmp(s, "OK") && json_is_null(err_val);
 		}
@@ -1478,10 +1479,10 @@ static bool stratum_handle_response(char *buf)
 
 	if(err_val)
 	{
-		if(jsonrpc_2)
+/*	if(jsonrpc_2)
 			share_result(valid, json_string_value(err_val));
-		else
-			share_result(valid, json_string_value(json_array_get(err_val, 1)));
+		else */
+			share_result(valid, json_string_value(json_object_get(err_val, "message")));
 	}
 	else
 		share_result(valid, NULL);
