@@ -204,9 +204,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 			memcpy(tempdata, pdata, 76);
 			uint32_t *tempnonceptr = (uint32_t*)(((char*)tempdata) + 39);
 			*tempnonceptr = foundNonce[0];
-#if !defined _WIN64 && !defined _LP64 /* hash is broken in 64bit builds */
 			cryptonight_hash(vhash64, tempdata, 76);
-#endif
 			if((vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 			{
 				res = 1;
@@ -215,9 +213,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 				if(foundNonce[1] < 0xffffffff)
 				{
 					*tempnonceptr = foundNonce[1];
-#if !defined _WIN64 && !defined _LP64 /* hash is broken in 64bit builds */
 					cryptonight_hash(vhash64, tempdata, 76);
-#endif
 					if((vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 					{
 						res++;
