@@ -37,4 +37,4 @@ NVCC_GENCODE		= -gencode=arch=compute_20,code=\"sm_20,compute_20\" -gencode=arch
 
 # we're now targeting all major compute architectures within one binary.
 .cu.o:
-	$(NVCC) @CFLAGS@ -I . -Xptxas "-abi=no -v" $(NVCC_GENCODE) --maxrregcount=80 --ptxas-options=-v $(JANSSON_INCLUDES) -o $@ -c $<
+	$(NVCC) @CFLAGS@ -I . $(NVCC_GENCODE) -D_FORCE_INLINES --maxrregcount=128 --ptxas-options=-v $(JANSSON_INCLUDES) -o $@ -c $<
