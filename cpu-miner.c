@@ -36,6 +36,7 @@
 #include <jansson.h>
 #include <curl/curl.h>
 #include <openssl/sha.h>
+#include <cuda_runtime.h>
 #include "compat.h"
 #include "miner.h"
 
@@ -2016,6 +2017,25 @@ static void signal_handler(int sig)
 }
 #endif
 
+static int msver(void)
+{
+	int version;
+#ifdef _MSC_VER
+	switch(_MSC_VER)
+	{
+		case 1500: version = 2008; break;
+		case 1600: version = 2010; break;
+		case 1700: version = 2012; break;
+		case 1800: version = 2013; break;
+		case 1900: version = 2015; break;
+		default: version = _MSC_VER / 100;
+	}
+#else
+	version = 0;
+#endif
+	return version;
+}
+
 #define PROGRAM_VERSION "1.02"
 int main(int argc, char *argv[])
 {
@@ -2027,10 +2047,26 @@ int main(int argc, char *argv[])
 	SYSTEM_INFO sysinfo;
 #endif
 	*/
-	printf("    *** ccminer-cryptonight %s for nVidia GPUs by tsiv and KlausT ***\n", PROGRAM_VERSION);
-	printf(" based on ccMiner by Christian Buchner and Christian H.\n");
-	printf(" based on cpuminer-multi by LucasJones\n");
-	printf(" based on pooler-cpuminer 2.3.2 (c) 2010 Jeff Garzik, 2012 pooler\n");
+#if defined _WIN64 || defined _LP64
+	int bits = 64;
+#else
+	int bits = 32;
+#endif
+	printf("    *** ccminer-cryptonight %s (%d bit) for nVidia GPUs by tsiv and KlausT \n", PROGRAM_VERSION, bits);
+#ifdef _MSC_VER
+	printf("    *** Built with Visual Studio %d ", msver());
+#else
+#ifdef __clang__
+	printf("    *** Built with Clang %s ", __clang_version__);
+#else
+#ifdef __GNUC__
+	printf("    *** Built with GCC %d.%d ", __GNUC__, __GNUC_MINOR__);
+#else
+	printf("    *** Built with an unusual compiler ");
+#endif
+#endif
+#endif
+	printf("using the Nvidia CUDA Toolkit %d.%d\n\n", CUDART_VERSION / 1000, (CUDART_VERSION % 1000) / 10);
 	printf(" tsiv's BTC donation address:   1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs\n");
 	printf(" KlausT's BTC donation address: 1QHH2dibyYL5iyMDk3UN4PVvFVtrWD8QKp\n");
 	printf(" for more donation addresses please read the README.txt\n");
