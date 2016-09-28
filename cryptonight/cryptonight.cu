@@ -145,7 +145,8 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 	uint32_t *nonceptr = (uint32_t*)(((char*)pdata) + 39);
 	const uint32_t first_nonce = *nonceptr;
 	uint32_t nonce = *nonceptr;
-	int cn_blocks = device_config[thr_id][0], cn_threads = device_config[thr_id][1];
+	int cn_blocks = device_config[thr_id][0];
+	int cn_threads = device_config[thr_id][1];
 	if(opt_benchmark)
 	{
 		((uint32_t*)ptarget)[7] = 0x0000ff;
@@ -231,7 +232,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 				applog(LOG_INFO, "GPU #%d: result for nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[0]);
 			}
 		}
-		if(nonce > 0xffffffff - throughput)
+		if((nonce & 0x00ffffff) > 0x00ffffff - throughput)
 			nonce = max_nonce;
 		else
 			nonce += throughput;
