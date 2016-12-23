@@ -22,7 +22,7 @@ __device__ __forceinline__ uint64_t cuda_mul128(uint64_t multiplier, uint64_t mu
 	return(multiplier * multiplicand);
 }
 
-__global__ void cryptonight_core_gpu_phase1(int threads, uint32_t * __restrict__ long_state, const struct cryptonight_gpu_ctx * __restrict__ ctx)
+__global__ void cryptonight_core_gpu_phase1(int threads, uint32_t * __restrict__ long_state, uint32_t * __restrict__ ctx_state, uint32_t * __restrict__ ctx_key1)
 {
 	__shared__ uint32_t sharedMemory[1024];
 
@@ -33,13 +33,13 @@ __global__ void cryptonight_core_gpu_phase1(int threads, uint32_t * __restrict__
 
 	if(thread < threads)
 	{
-		uint32_t key[40], text[4], i;
+		uint32_t key[40], text[4];
 
-		MEMCPY8(key, ctx[thread].key1, 20);
-		MEMCPY8(text, &ctx[thread].state[sub + 16], 2);
+		MEMCPY8(key, ctx_key1 + thread * 40, 20);
+		MEMCPY8(text, ctx_state + thread * 50 + sub + 16, 2);
 
 		__syncthreads();
-		for(i = 0; i < 0x80000; i += 32)
+		for(int i = 0; i < 0x80000; i += 32)
 		{
 			cn_aes_pseudo_round_mut(sharedMemory, text, key);
 			MEMCPY8(&long_state[(thread << 19) + sub + i], text, 2);
@@ -47,7 +47,7 @@ __global__ void cryptonight_core_gpu_phase1(int threads, uint32_t * __restrict__
 	}
 }
 
-__global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partidx, uint32_t * __restrict__ d_long_state, struct cryptonight_gpu_ctx * __restrict__ d_ctx)
+__global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partidx, uint32_t * __restrict__ d_long_state, uint32_t * __restrict__ d_ctx_a, uint32_t * __restrict__ d_ctx_b)
 {
 	__shared__ uint32_t sharedMemory[1024];
 
@@ -67,13 +67,14 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
 		const int start = partidx * batchsize;
 		const int end = start + batchsize;
 		uint32_t * __restrict__ long_state = &d_long_state[thread << 19];
-		struct cryptonight_gpu_ctx * __restrict__ ctx = &d_ctx[thread];
+		uint32_t * __restrict__ ctx_a = d_ctx_a + thread * 4;
+		uint32_t * __restrict__ ctx_b = d_ctx_b + thread * 4;
 		uint32_t a, b, c, x[4];
 		uint32_t t1[4], t2[4], res;
 		uint64_t reshi, reslo;
 
-		a = ctx->a[sub];
-		b = ctx->b[sub];
+		a = ctx_a[sub];
+		b = ctx_b[sub];
 
 #pragma unroll 8
 		for(i = start; i < end; ++i)
@@ -150,8 +151,8 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
 
 		if(bfactor > 0)
 		{
-			ctx->a[sub] = a;
-			ctx->b[sub] = b;
+			ctx_a[sub] = a;
+			ctx_b[sub] = b;
 		}
 	}
 
@@ -166,11 +167,12 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
 		const int start = partidx * batchsize;
 		const int end = start + batchsize;
 		uint32_t * __restrict__ long_state = &d_long_state[thread << 19];
-		struct cryptonight_gpu_ctx * __restrict__ ctx = &d_ctx[thread];
+		uint32_t * __restrict__ ctx_a = d_ctx_a + thread * 4;
+		uint32_t * __restrict__ ctx_b = d_ctx_b + thread * 4;
 		uint32_t a[4], b[4], c[4];
 
-		MEMCPY8(a, ctx->a, 2);
-		MEMCPY8(b, ctx->b, 2);
+		MEMCPY8(a, ctx_a, 2);
+		MEMCPY8(b, ctx_b, 2);
 
 		for(i = start; i < end; ++i)
 		{
@@ -187,15 +189,15 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
 		if(bfactor > 0)
 		{
 
-			MEMCPY8(ctx->a, a, 2);
-			MEMCPY8(ctx->b, b, 2);
+			MEMCPY8(ctx_a, a, 2);
+			MEMCPY8(ctx_b, b, 2);
 		}
 	}
 
 #endif // __CUDA_ARCH__ >= 300
 }
 
-__global__ void cryptonight_core_gpu_phase3(int threads, const uint32_t * __restrict__ long_state, struct cryptonight_gpu_ctx * __restrict__ ctx)
+__global__ void cryptonight_core_gpu_phase3(int threads, const uint32_t * __restrict__ long_state, uint32_t * __restrict__ d_ctx_state, uint32_t * __restrict__ d_ctx_key2)
 {
 	__shared__ uint32_t sharedMemory[1024];
 
@@ -207,29 +209,24 @@ __global__ void cryptonight_core_gpu_phase3(int threads, const uint32_t * __rest
 	if(thread < threads)
 	{
 		uint32_t key[40], text[4], i, j;
-		MEMCPY8(key, ctx[thread].key2, 20);
-		MEMCPY8(text, &ctx[thread].state[sub + 16], 2);
+		MEMCPY8(key, d_ctx_key2 + thread * 40, 20);
+		MEMCPY8(text, d_ctx_state + thread * 50 + sub + 16, 2);
 
 		__syncthreads();
 		for(i = 0; i < 0x80000; i += 32)
 		{
+#pragma unroll
 			for(j = 0; j < 4; ++j)
 				text[j] ^= long_state[(thread << 19) + sub + i + j];
 
 			cn_aes_pseudo_round_mut(sharedMemory, text, key);
 		}
 
-		MEMCPY8(&ctx[thread].state[sub + 16], text, 2);
+		MEMCPY8(d_ctx_state + thread * 50 + sub + 16, text, 2);
 	}
 }
 
-
-__host__ void cryptonight_core_cpu_init(int thr_id, int threads)
-{
-	cn_aes_cpu_init();
-}
-
-__host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, struct cryptonight_gpu_ctx *d_ctx)
+__host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, uint32_t *d_ctx_state, uint32_t *d_ctx_a, uint32_t *d_ctx_b, uint32_t *d_ctx_key1, uint32_t *d_ctx_key2)
 {
 	dim3 grid(blocks);
 	dim3 block(threads);
@@ -238,17 +235,17 @@ __host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uin
 
 	int i, partcount = 1 << device_bfactor[thr_id];
 
-	cryptonight_core_gpu_phase1 << <grid, block8 >> >(blocks*threads, d_long_state, d_ctx);
+	cryptonight_core_gpu_phase1 << <grid, block8 >> >(blocks*threads, d_long_state, d_ctx_state, d_ctx_key1);
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 	if(partcount > 1) usleep(device_bsleep[thr_id]);
 
 	for(i = 0; i < partcount; i++)
 	{
-		cryptonight_core_gpu_phase2 << <grid, (device_arch[thr_id][0] >= 3 ? block4 : block)>> >(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx);
+		cryptonight_core_gpu_phase2 << <grid, (device_arch[thr_id][0] >= 3 ? block4 : block)>> >(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx_a, d_ctx_b);
 		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 		if(partcount > 1) usleep(device_bsleep[thr_id]);
 	}
 
-	cryptonight_core_gpu_phase3 << <grid, block8 >> >(blocks*threads, d_long_state, d_ctx);
+	cryptonight_core_gpu_phase3 << <grid, block8 >> >(blocks*threads, d_long_state, d_ctx_state, d_ctx_key2);
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 }

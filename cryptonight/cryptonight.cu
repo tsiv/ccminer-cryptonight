@@ -122,23 +122,18 @@ extern "C" int cuda_finddevice(char *name)
 }
 
 static uint32_t *d_long_state[8];
-static struct cryptonight_gpu_ctx *d_ctx[8];
+static uint32_t *d_ctx_state[8];
+static uint32_t *d_ctx_a[8];
+static uint32_t *d_ctx_b[8];
+static uint32_t *d_ctx_key1[8];
+static uint32_t *d_ctx_key2[8];
+static uint32_t *d_ctx_text[8];
 
 extern bool opt_benchmark;
 
-extern void cryptonight_core_cpu_init(int thr_id, int threads);
-extern void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, struct cryptonight_gpu_ctx *d_ctx);
-
-extern void cryptonight_extra_cpu_setData(int thr_id, const void *data, const void *pTargetIn);
-extern void cryptonight_extra_cpu_init(int thr_id);
-extern void cryptonight_extra_cpu_prepare(int thr_id, int threads, uint32_t startNonce, struct cryptonight_gpu_ctx *d_ctx);
-extern void cryptonight_extra_cpu_final(int thr_id, int threads, uint32_t startNonce, uint32_t *nonce, struct cryptonight_gpu_ctx *d_ctx);
-
 extern "C" void cryptonight_hash(void* output, const void* input, size_t len);
 
-extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
-																		const uint32_t *ptarget, uint32_t max_nonce,
-																		unsigned long *hashes_done, uint32_t *results)
+extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t *ptarget, uint32_t max_nonce, unsigned long *hashes_done, uint32_t *results)
 {
 	cudaError_t err;
 	int res;
@@ -153,7 +148,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 		pdata[17] = 0;
 	}
 	const uint32_t Htarg = ptarget[7];
-	const int throughput = cn_threads * cn_blocks;
+	const uint32_t throughput = cn_threads * cn_blocks;
 	if(sizeof(size_t) == 4 && throughput > 0xffffffff / MEMORY)
 	{
 		applog(LOG_ERR, "GPU %d: THE 32bit VERSION CAN'T ALLOCATE MORE THAN 4GB OF MEMORY!", device_map[thr_id]);
@@ -172,17 +167,22 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 		}
 		cudaDeviceReset();
 		cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
-		if(cudaMalloc(&d_long_state[thr_id], alloc) != cudaSuccess)
-		{
-			applog(LOG_ERR, "GPU #%d: FATAL: failed to allocate device memory for long state", thr_id);
-			exit(1);
-		}
-		if(cudaMalloc(&d_ctx[thr_id], sizeof(struct cryptonight_gpu_ctx) * throughput) != cudaSuccess)
-		{
-			applog(LOG_ERR, "GPU #%d: FATAL: failed to allocate device memory for hash context", thr_id);
-			exit(1);
-		}
-		cryptonight_core_cpu_init(thr_id, throughput);
+		cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
+		cudaMalloc(&d_long_state[thr_id], alloc);
+		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
+		cudaMalloc(&d_ctx_state[thr_id], 50 * sizeof(uint32_t) * throughput);
+		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
+		cudaMalloc(&d_ctx_key1[thr_id], 40 * sizeof(uint32_t) * throughput);
+		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
+		cudaMalloc(&d_ctx_key2[thr_id], 40 * sizeof(uint32_t) * throughput);
+		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
+		cudaMalloc(&d_ctx_text[thr_id], 32 * sizeof(uint32_t) * throughput);
+		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
+		cudaMalloc(&d_ctx_a[thr_id], 4 * sizeof(uint32_t) * throughput);
+		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
+		cudaMalloc(&d_ctx_b[thr_id], 4 * sizeof(uint32_t) * throughput);
+		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
+
 		cryptonight_extra_cpu_init(thr_id);
 
 		init[thr_id] = true;
@@ -194,9 +194,9 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 	{
 		uint32_t foundNonce[2];
 
-		cryptonight_extra_cpu_prepare(thr_id, throughput, nonce, d_ctx[thr_id]);
-		cryptonight_core_cpu_hash(thr_id, cn_blocks, cn_threads, d_long_state[thr_id], d_ctx[thr_id]);
-		cryptonight_extra_cpu_final(thr_id, throughput, nonce, foundNonce, d_ctx[thr_id]);
+		cryptonight_extra_cpu_prepare(thr_id, throughput, nonce, d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id]);
+		cryptonight_core_cpu_hash(thr_id, cn_blocks, cn_threads, d_long_state[thr_id], d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id]);
+		cryptonight_extra_cpu_final(thr_id, throughput, nonce, foundNonce, d_ctx_state[thr_id]);
 
 		if(foundNonce[0] < 0xffffffff)
 		{
@@ -232,7 +232,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 				applog(LOG_INFO, "GPU #%d: result for nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[0]);
 			}
 		}
-		if((nonce & 0x00ffffff) > 0x00ffffff - throughput)
+		if((nonce & 0x00ffffff) > (0x00ffffff - throughput))
 			nonce = max_nonce;
 		else
 			nonce += throughput;

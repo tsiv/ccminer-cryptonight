@@ -294,11 +294,6 @@ __device__ __forceinline__ static void cn_aes_pseudo_round_mut(const uint32_t * 
     round(sharedMemory, val, b1, expandedKey + 9 * N_COLS);
 }
 
-static void cn_aes_cpu_init()
-{
-	/*cudaMemcpyToSymbol( d_t_fn, t_fn, sizeof(t_fn), 0, cudaMemcpyHostToDevice);*/
-}
-
 __device__ __forceinline__ static void cn_aes_gpu_init(uint32_t *sharedMemory)
 {
 	if(blockDim.x >= 32)
