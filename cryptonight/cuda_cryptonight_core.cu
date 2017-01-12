@@ -47,7 +47,17 @@ __global__ void cryptonight_core_gpu_phase1(int threads, uint32_t * __restrict__
 	}
 }
 
-__global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partidx, uint32_t * __restrict__ d_long_state, uint32_t * __restrict__ d_ctx_a, uint32_t * __restrict__ d_ctx_b)
+__device__ __forceinline__ void MUL_SUM_XOR_DST(const uint64_t *__restrict__ a, uint64_t *__restrict__ c, uint64_t *__restrict__ dst)
+{
+	uint64_t hi, lo = cuda_mul128(a[0], dst[0], &hi) + c[1];
+	hi += c[0];
+	c[0] = dst[0] ^ hi;
+	c[1] = dst[1] ^ lo;
+	dst[0] = hi;
+	dst[1] = lo;
+}
+
+__global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int partidx, uint32_t * __restrict__ d_long_state, uint32_t * __restrict__ d_ctx_a, uint32_t * __restrict__ d_ctx_b)
 {
 	__shared__ uint32_t sharedMemory[1024];
 
@@ -55,7 +65,7 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
 
 	__syncthreads();
 
-#if __CUDA_ARCH__ >= 300
+#if __CUDA_ARCH__ >= 300 && __CUDA_ARCH__ < 600
 
 	const int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 2;
 	const int sub = threadIdx.x & 3;
@@ -157,43 +167,48 @@ __global__ void cryptonight_core_gpu_phase2(int threads, int bfactor, int partid
 	}
 
 #else // __CUDA_ARCH__ < 300
-
-	const int thread = blockDim.x * blockIdx.x + threadIdx.x;
+	const uint32_t thread = blockDim.x * blockIdx.x + threadIdx.x;
 
 	if(thread < threads)
 	{
-		int i, j;
+		int j;
 		const int batchsize = ITER >> (2 + bfactor);
 		const int start = partidx * batchsize;
 		const int end = start + batchsize;
 		uint32_t * __restrict__ long_state = &d_long_state[thread << 19];
-		uint32_t * __restrict__ ctx_a = d_ctx_a + thread * 4;
-		uint32_t * __restrict__ ctx_b = d_ctx_b + thread * 4;
-		uint32_t a[4], b[4], c[4];
+		uint64_t * __restrict__ ctx_a = (uint64_t*)(d_ctx_a + thread * 4);
+		uint64_t * __restrict__ ctx_b = (uint64_t*)(d_ctx_b + thread * 4);
+		uint64_t a[2], b[2], c[2];
+		uint32_t *a32 = (uint32_t*)a;
+		uint32_t *b32 = (uint32_t*)b;
+		uint32_t *c32 = (uint32_t*)c;
 
-		MEMCPY8(a, ctx_a, 2);
-		MEMCPY8(b, ctx_b, 2);
+		a[0] = ctx_a[0];
+		a[1] = ctx_a[1];
+		b[0] = ctx_b[0];
+		b[1] = ctx_b[1];
 
-		for(i = start; i < end; ++i)
+		for(int i = start; i < end; ++i)
 		{
-			j = (a[0] & 0x1FFFF0) >> 2;
-			cn_aes_single_round(sharedMemory, &long_state[j], c, a);
-			XOR_BLOCKS_DST(c, b, &long_state[j]);
-			MUL_SUM_XOR_DST(c, a, (uint8_t *)&long_state[(c[0] & 0x1FFFF0) >> 2]);
-			j = (a[0] & 0x1FFFF0) >> 2;
-			cn_aes_single_round(sharedMemory, &long_state[j], b, a);
-			XOR_BLOCKS_DST(b, c, &long_state[j]);
-			MUL_SUM_XOR_DST(b, a, &long_state[(b[0] & 0x1FFFF0) >> 2]);
+			j = (a32[0] & 0x001FFFF0) >> 2;
+			cn_aes_single_round(sharedMemory, &long_state[j], c32, a32);
+			XOR_BLOCKS_DST2(c, b, &long_state[j]);
+			MUL_SUM_XOR_DST(c, a, (uint64_t*)&long_state[(c[0] & 0x001FFFF0) >> 2]);
+			j = (((uint32_t*)a)[0] & 0x1FFFF0) >> 2;
+			cn_aes_single_round(sharedMemory, &long_state[j], b32, a32);
+			XOR_BLOCKS_DST2(b, c, &long_state[j]);
+			MUL_SUM_XOR_DST(b, a, (uint64_t*)&long_state[(b[0] & 0x1FFFF0) >> 2]);
 		}
 
 		if(bfactor > 0)
 		{
 
-			MEMCPY8(ctx_a, a, 2);
-			MEMCPY8(ctx_b, b, 2);
+			ctx_a[0] = a[0];
+			ctx_a[1] = a[1];
+			ctx_b[0] = b[0];
+			ctx_b[1] = b[1];
 		}
 	}
-
 #endif // __CUDA_ARCH__ >= 300
 }
 
@@ -241,7 +256,7 @@ __host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uin
 
 	for(i = 0; i < partcount; i++)
 	{
-		cryptonight_core_gpu_phase2 << <grid, (device_arch[thr_id][0] >= 3 ? block4 : block)>> >(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx_a, d_ctx_b);
+		cryptonight_core_gpu_phase2 << <grid, ((device_arch[thr_id][0] == 3 || device_arch[thr_id][0] == 5) ? block4 : block)>> >(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx_a, d_ctx_b);
 		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 		if(partcount > 1) usleep(device_bsleep[thr_id]);
 	}
