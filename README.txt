@@ -90,6 +90,7 @@ most of their command line interface and options.
      --no-stratum      disable X-Stratum support
  -q, --quiet           disable per-thread hashmeter output
  -D, --debug           enable debug output
+     --color           enable color output
  -P, --protocol-dump   verbose dump of protocol-level activities
  -B, --background      run the miner in the background
      --benchmark       run in offline benchmark mode

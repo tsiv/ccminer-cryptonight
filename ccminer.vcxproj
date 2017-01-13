@@ -238,7 +238,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <PerformDeviceLink>false</PerformDeviceLink>
     </CudaLink>
     <CudaLink>
-      <Optimization>O2</Optimization>
+      <Optimization>O3</Optimization>
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>

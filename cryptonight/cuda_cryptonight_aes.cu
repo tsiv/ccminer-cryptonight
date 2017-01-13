@@ -276,7 +276,10 @@ static __constant__ uint32_t d_t_fn[1024] =
 
 __device__ __forceinline__ static void cn_aes_single_round(uint32_t * __restrict__ sharedMemory, const uint32_t * __restrict__ in, uint32_t * __restrict__ out, const uint32_t * __restrict__ expandedKey)
 {
-    round(sharedMemory, out, in, expandedKey);
+	out[0] = expandedKey[0] ^ t_fn0(in[0] & 0xff) ^ t_fn1((in[1] >> 8) & 0xff) ^ t_fn2((in[2] >> 16) & 0xff) ^ t_fn3((in[3] >> 24) & 0xff);
+	out[1] = expandedKey[1] ^ t_fn0(in[1] & 0xff) ^ t_fn1((in[2] >> 8) & 0xff) ^ t_fn2((in[3] >> 16) & 0xff) ^ t_fn3((in[0] >> 24) & 0xff);
+	out[2] = expandedKey[2] ^ t_fn0(in[2] & 0xff) ^ t_fn1((in[3] >> 8) & 0xff) ^ t_fn2((in[0] >> 16) & 0xff) ^ t_fn3((in[1] >> 24) & 0xff);
+	out[3] = expandedKey[3] ^ t_fn0(in[3] & 0xff) ^ t_fn1((in[0] >> 8) & 0xff) ^ t_fn2((in[1] >> 16) & 0xff) ^ t_fn3((in[2] >> 24) & 0xff);
 }
 
 __device__ __forceinline__ static void cn_aes_pseudo_round_mut(const uint32_t * __restrict__ sharedMemory, uint32_t * __restrict__ val, const uint32_t * __restrict__ expandedKey)

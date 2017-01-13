@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 
 #ifdef __INTELLISENSE__ 
-#define __CUDA_ARCH__ 520
+#define __CUDA_ARCH__ 610
 /* avoid red underlining */
 
 struct uint3
@@ -113,13 +113,9 @@ struct uint3  blockDim;
     ((uint64_t *)z)[0] = ((uint64_t *)(x))[0] ^ ((uint64_t *)(y))[0]; \
     ((uint64_t *)z)[1] = ((uint64_t *)(x))[1] ^ ((uint64_t *)(y))[1]; }
 
-#define MUL_SUM_XOR_DST(a,c,dst) { \
-    uint64_t hi, lo = cuda_mul128(((uint64_t *)a)[0], ((uint64_t *)dst)[0], &hi) + ((uint64_t *)c)[1]; \
-    hi += ((uint64_t *)c)[0]; \
-    ((uint64_t *)c)[0] = ((uint64_t *)dst)[0] ^ hi; \
-    ((uint64_t *)c)[1] = ((uint64_t *)dst)[1] ^ lo; \
-    ((uint64_t *)dst)[0] = hi; \
-    ((uint64_t *)dst)[1] = lo; }
+#define XOR_BLOCKS_DST2(x,y,z) { \
+    ((uint64_t *)z)[0] = (x)[0] ^ (y)[0]; \
+    ((uint64_t *)z)[1] = (x)[1] ^ (y)[1]; }
 
 #define E2I(x) ((size_t)(((*((uint64_t*)(x)) >> 4) & 0x1ffff)))
 
