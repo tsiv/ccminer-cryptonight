@@ -134,6 +134,7 @@ static const char *algo_names[] = {
 	"cryptonight"
 };
 
+bool opt_colors = false;
 bool opt_debug = false;
 bool opt_protocol = false;
 bool opt_keepalive = false;
@@ -260,6 +261,7 @@ Usage: " PROGRAM_NAME " [OPTIONS]\n\
 	      --no-stratum      disable X-Stratum support\n\
 	  -q, --quiet           disable per-thread hashmeter output\n\
 	  -D, --debug           enable debug output\n\
+	      --color           enable output with colors\n\
 	  -P, --protocol-dump   verbose dump of protocol-level activities\n"
 #ifdef HAVE_SYSLOG_H
 "\
@@ -321,6 +323,7 @@ static struct option const options[] = {
 	{"launch-config", 1, NULL, 'l'},
 	{"bfactor", 1, NULL, 1008},
 	{"bsleep", 1, NULL, 1009},
+	{"color", 0, NULL, 1010},
 	{0, 0, 0, 0}
 };
 
@@ -601,6 +604,9 @@ err_out: return false;
 
 static void share_result(int result, const char *reason)
 {
+	extern char *CL_GRN;
+	extern char *CL_RED;
+	extern char *CL_N;
 	double hashrate;
 	int i;
 
@@ -611,10 +617,17 @@ static void share_result(int result, const char *reason)
 	result ? accepted_count++ : rejected_count++;
 	pthread_mutex_unlock(&stats_lock);
 
-	applog(LOG_INFO, "accepted: %lu/%lu (%.2f%%), %.2f H/s %s",
-				 accepted_count, accepted_count + rejected_count,
-				 100. * accepted_count / (accepted_count + rejected_count), hashrate,
-				 result ? "(yay!!!)" : "(booooo)");
+	if(result)
+		applog(LOG_INFO, "accepted: %lu/%lu (%.2f%%), %.2f H/s %s%s%s",
+			   accepted_count, accepted_count + rejected_count,
+			   100. * accepted_count / (accepted_count + rejected_count), hashrate,
+			   CL_GRN, "(yay!!!)", CL_N);
+	else
+		applog(LOG_INFO, "accepted: %lu/%lu (%.2f%%), %.2f H/s %s%s%s",
+			   accepted_count, accepted_count + rejected_count,
+			   100. * accepted_count / (accepted_count + rejected_count), hashrate,
+			   CL_RED, "(booooo)", CL_N);
+
 	if(reason)
 		applog(LOG_DEBUG, "reject reason: %s", reason);
 }
@@ -1927,6 +1940,9 @@ static void parse_arg(int key, char *arg)
 				device_bsleep[i++] = last;
 			}
 			break;
+		case 1010:
+			opt_colors = true;
+			break;
 
 		case 'V':
 			show_version_and_exit();
@@ -2088,7 +2104,7 @@ int main(int argc, char *argv[])
 
 	/* parse command line */
 	parse_cmdline(argc, argv);
-
+	color_init();
 	cuda_deviceinfo();
 
 	jsonrpc_2 = true;

@@ -211,6 +211,7 @@ struct work_restart {
 	char			padding[128 - sizeof(unsigned long)];
 };
 
+extern bool opt_colors;
 extern bool opt_debug;
 extern bool opt_protocol;
 extern int opt_timeout;
@@ -235,6 +236,7 @@ extern bool jsonrpc_2;
 #define JSON_RPC_QUIET_404	(1 << 1)
 #define JSON_RPC_IGNOREERR  (1 << 2)
 
+void color_init();
 extern void applog(int prio, const char *fmt, ...);
 extern json_t *json_rpc_call(CURL *curl, const char *url, const char *userpass,
 	const char *rpc_req, bool, bool, int *);

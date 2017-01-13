@@ -25,6 +25,7 @@
 #if defined(WIN32)
 #include <winsock2.h>
 #include <mstcpip.h>
+#include <VersionHelpers.h>
 #else
 #include <errno.h>
 #include <sys/socket.h>
@@ -34,6 +35,14 @@
 #include "compat.h"
 #include "miner.h"
 #include "elist.h"
+
+char* CL_N;
+char* CL_RED;
+char* CL_GRN;
+char* CL_YLW;
+char* CL_BLU;
+char* CL_MAG;
+char* CL_CYN;
 
 struct data_buffer
 {
@@ -71,6 +80,30 @@ struct thread_q
 	pthread_cond_t		cond;
 };
 
+void color_init()
+{
+	if(opt_colors)
+	{
+		CL_N = "\033[0m";
+		CL_RED = "\033[31m";
+		CL_GRN = "\033[32m";
+		CL_YLW = "\033[33m";
+		CL_BLU = "\033[34m";
+		CL_MAG = "\033[35m";
+		CL_CYN = "\033[36m";
+	}
+	else
+	{
+		CL_N = "";
+		CL_RED = "";
+		CL_GRN = "";
+		CL_YLW = "";
+		CL_BLU = "";
+		CL_MAG = "";
+		CL_CYN = "";
+	}
+}
+
 void applog(int prio, const char *fmt, ...)
 {
 	va_list ap;
@@ -98,8 +131,10 @@ void applog(int prio, const char *fmt, ...)
 #endif
 	else
 	{
+		const char* color = "";
+		char *reset;
 		char *f;
-		int len;
+		size_t len;
 		time_t now;
 		struct tm tm, *tm_p;
 
@@ -110,16 +145,29 @@ void applog(int prio, const char *fmt, ...)
 		memcpy(&tm, tm_p, sizeof(tm));
 		pthread_mutex_unlock(&applog_lock);
 
-		len = (int)(40 + strlen(fmt) + 2);
+		switch(prio)
+		{
+			case LOG_ERR:     color = CL_RED; break;
+			case LOG_WARNING: color = CL_YLW; break;
+			case LOG_NOTICE:  color = CL_MAG; break;
+			case LOG_INFO:    color = ""; break;
+			case LOG_DEBUG:   color = CL_BLU; break;
+		}
+		if(strlen(color) == 0)
+			reset = "";
+		else
+			reset = CL_N;
+
+		len = strlen(fmt) + 42;
 		f = (char*)alloca(len);
-		sprintf(f, "[%d-%02d-%02d %02d:%02d:%02d] %s\n",
-						tm.tm_year + 1900,
-						tm.tm_mon + 1,
-						tm.tm_mday,
-						tm.tm_hour,
-						tm.tm_min,
-						tm.tm_sec,
-						fmt);
+		sprintf(f, "[%d-%02d-%02d %02d:%02d:%02d]%s %s%s\n",
+				tm.tm_year + 1900,
+				tm.tm_mon + 1,
+				tm.tm_mday,
+				tm.tm_hour,
+				tm.tm_min,
+				tm.tm_sec,
+				color, fmt, reset);
 		pthread_mutex_lock(&applog_lock);
 		vfprintf(stderr, f, ap);	/* atomic write to stderr */
 		fflush(stderr);
