@@ -151,7 +151,7 @@ void applog(int prio, const char *fmt, ...)
 			case LOG_WARNING: color = CL_YLW; break;
 			case LOG_NOTICE:  color = CL_MAG; break;
 			case LOG_INFO:    color = ""; break;
-			case LOG_DEBUG:   color = CL_BLU; break;
+			case LOG_DEBUG:   color = CL_CYN; break;
 		}
 		if(strlen(color) == 0)
 			reset = "";
