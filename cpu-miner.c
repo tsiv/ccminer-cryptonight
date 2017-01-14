@@ -629,7 +629,7 @@ static void share_result(int result, const char *reason)
 			   CL_RED, "(booooo)", CL_N);
 
 	if(reason)
-		applog(LOG_DEBUG, "reject reason: %s", reason);
+		applog(LOG_WARNING, "reject reason: %s", reason);
 }
 
 static bool submit_upstream_work(CURL *curl, struct work *work)
