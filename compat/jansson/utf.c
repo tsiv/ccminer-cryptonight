@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010 Petri Lehtinen <petri@digip.org>
+ * Copyright (c) 2009-2013 Petri Lehtinen <petri@digip.org>
  *
  * Jansson is free software; you can redistribute it and/or modify
  * it under the terms of the MIT license. See LICENSE for details.
@@ -167,7 +167,7 @@ int utf8_check_string(const char *string, int length)
     int i;
 
     if(length == -1)
-        length = (int)strlen(string);
+        length = strlen(string);
 
     for(i = 0; i < length; i++)
     {

@@ -22,18 +22,20 @@ extern "C" {
  * OpenSSL was configured with the following options:
  */
 
-#ifndef OPENSSL_SYS_WIN32
-# define OPENSSL_SYS_WIN32 1
+#ifndef OPENSSL_SYS_WIN64A
+# define OPENSSL_SYS_WIN64A 1
 #endif
-#define OPENSSL_MIN_API 0x10100000L
+#ifndef OPENSSL_NO_MD2
+# define OPENSSL_NO_MD2
+#endif
+#ifndef OPENSSL_NO_RC5
+# define OPENSSL_NO_RC5
+#endif
+#ifndef OPENSSL_THREADS
+# define OPENSSL_THREADS
+#endif
 #ifndef OPENSSL_NO_ASAN
 # define OPENSSL_NO_ASAN
-#endif
-#ifndef OPENSSL_NO_CAPIENG
-# define OPENSSL_NO_CAPIENG
-#endif
-#ifndef OPENSSL_NO_CMS
-# define OPENSSL_NO_CMS
 #endif
 #ifndef OPENSSL_NO_CRYPTO_MDEBUG
 # define OPENSSL_NO_CRYPTO_MDEBUG
@@ -41,38 +43,8 @@ extern "C" {
 #ifndef OPENSSL_NO_CRYPTO_MDEBUG_BACKTRACE
 # define OPENSSL_NO_CRYPTO_MDEBUG_BACKTRACE
 #endif
-#ifndef OPENSSL_NO_CT
-# define OPENSSL_NO_CT
-#endif
-#ifndef OPENSSL_NO_DEPRECATED
-# define OPENSSL_NO_DEPRECATED
-#endif
-#ifndef OPENSSL_NO_DGRAM
-# define OPENSSL_NO_DGRAM
-#endif
-#ifndef OPENSSL_NO_DTLS
-# define OPENSSL_NO_DTLS
-#endif
-#ifndef OPENSSL_NO_DTLS1
-# define OPENSSL_NO_DTLS1
-#endif
-#ifndef OPENSSL_NO_DTLS1_2
-# define OPENSSL_NO_DTLS1_2
-#endif
-#ifndef OPENSSL_NO_EC
-# define OPENSSL_NO_EC
-#endif
-#ifndef OPENSSL_NO_EC2M
-# define OPENSSL_NO_EC2M
-#endif
 #ifndef OPENSSL_NO_EC_NISTP_64_GCC_128
 # define OPENSSL_NO_EC_NISTP_64_GCC_128
-#endif
-#ifndef OPENSSL_NO_ECDH
-# define OPENSSL_NO_ECDH
-#endif
-#ifndef OPENSSL_NO_ECDSA
-# define OPENSSL_NO_ECDSA
 #endif
 #ifndef OPENSSL_NO_EGD
 # define OPENSSL_NO_EGD
@@ -83,50 +55,14 @@ extern "C" {
 #ifndef OPENSSL_NO_FUZZ_LIBFUZZER
 # define OPENSSL_NO_FUZZ_LIBFUZZER
 #endif
-#ifndef OPENSSL_NO_GOST
-# define OPENSSL_NO_GOST
-#endif
 #ifndef OPENSSL_NO_HEARTBEATS
 # define OPENSSL_NO_HEARTBEATS
-#endif
-#ifndef OPENSSL_NO_MD2
-# define OPENSSL_NO_MD2
 #endif
 #ifndef OPENSSL_NO_MSAN
 # define OPENSSL_NO_MSAN
 #endif
-#ifndef OPENSSL_NO_MULTIBLOCK
-# define OPENSSL_NO_MULTIBLOCK
-#endif
-#ifndef OPENSSL_NO_NEXTPROTONEG
-# define OPENSSL_NO_NEXTPROTONEG
-#endif
-#ifndef OPENSSL_NO_OCSP
-# define OPENSSL_NO_OCSP
-#endif
-#ifndef OPENSSL_NO_POSIX_IO
-# define OPENSSL_NO_POSIX_IO
-#endif
-#ifndef OPENSSL_NO_PSK
-# define OPENSSL_NO_PSK
-#endif
-#ifndef OPENSSL_NO_RC5
-# define OPENSSL_NO_RC5
-#endif
-#ifndef OPENSSL_NO_RFC3779
-# define OPENSSL_NO_RFC3779
-#endif
 #ifndef OPENSSL_NO_SCTP
 # define OPENSSL_NO_SCTP
-#endif
-#ifndef OPENSSL_NO_SOCK
-# define OPENSSL_NO_SOCK
-#endif
-#ifndef OPENSSL_NO_SRP
-# define OPENSSL_NO_SRP
-#endif
-#ifndef OPENSSL_NO_SRTP
-# define OPENSSL_NO_SRTP
 #endif
 #ifndef OPENSSL_NO_SSL_TRACE
 # define OPENSSL_NO_SSL_TRACE
@@ -137,9 +73,6 @@ extern "C" {
 #ifndef OPENSSL_NO_SSL3_METHOD
 # define OPENSSL_NO_SSL3_METHOD
 #endif
-#ifndef OPENSSL_NO_TS
-# define OPENSSL_NO_TS
-#endif
 #ifndef OPENSSL_NO_UBSAN
 # define OPENSSL_NO_UBSAN
 #endif
@@ -148,12 +81,6 @@ extern "C" {
 #endif
 #ifndef OPENSSL_NO_WEAK_SSL_CIPHERS
 # define OPENSSL_NO_WEAK_SSL_CIPHERS
-#endif
-#ifndef OPENSSL_THREADS
-# define OPENSSL_THREADS
-#endif
-#ifndef OPENSSL_NO_HW_PADLOCK
-# define OPENSSL_NO_HW_PADLOCK
 #endif
 #ifndef OPENSSL_NO_AFALGENG
 # define OPENSSL_NO_AFALGENG
@@ -231,11 +158,11 @@ extern "C" {
  * The following are cipher-specific, but are part of the public API.
  */
 #if !defined(OPENSSL_SYS_UEFI)
-# define BN_LLONG
+# undef BN_LLONG
 /* Only one for the following should be defined */
 # undef SIXTY_FOUR_BIT_LONG
-# undef SIXTY_FOUR_BIT
-# define THIRTY_TWO_BIT
+# define SIXTY_FOUR_BIT
+# undef THIRTY_TWO_BIT
 #endif
 
 #define RC4_INT unsigned int
