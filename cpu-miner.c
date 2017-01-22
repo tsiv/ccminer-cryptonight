@@ -1022,9 +1022,9 @@ static void *miner_thread(void *userdata)
 	* of the number of CPUs */
 	if(num_processors > 1 && opt_n_threads % num_processors == 0)
 	{
-		if(!opt_quiet)
+		if(opt_debug)
 			applog(LOG_INFO, "Binding thread %d to cpu %d",
-			thr_id, thr_id % num_processors);
+				   thr_id, thr_id % num_processors);
 		affine_to_cpu(thr_id, thr_id % num_processors);
 	}
 
@@ -1077,12 +1077,18 @@ static void *miner_thread(void *userdata)
 		}
 		if(memcmp(work.data, g_work.data, 39) || memcmp(((uint8_t*)work.data) + 43, ((uint8_t*)g_work.data) + 43, 33))
 		{
+			if(opt_debug)
+				applog(LOG_DEBUG, "GPU #%d: %s, got new work", device_map[thr_id], device_name[thr_id]);
 			memcpy(&work, &g_work, sizeof(struct work));
 			end_nonce = *nonceptr + 0x00ffffffU / opt_n_threads * (thr_id + 1) - 0x20;
 			*nonceptr += 0x00ffffffU / opt_n_threads * thr_id;
 		}
 		else
+		{
+			if(opt_debug)
+				applog(LOG_DEBUG, "GPU #%d: %s, continue with old work", device_map[thr_id], device_name[thr_id], *nonceptr, max_nonce);
 			*nonceptr += hashes_done;
+		}
 
 		pthread_mutex_unlock(&g_work_lock);
 		work_restart[thr_id].restart = 0;
@@ -1099,6 +1105,9 @@ static void *miner_thread(void *userdata)
 			max_nonce = end_nonce;
 		else
 			max_nonce = (uint32_t)(*nonceptr + max64);
+
+		if(opt_debug)
+			applog(LOG_DEBUG, "GPU #%d: %s, startnonce $%08X, endnonce $%08X", device_map[thr_id], device_name[thr_id], *nonceptr, max_nonce);
 
 		hashes_done = 0;
 		gettimeofday(&tv_start, NULL);
