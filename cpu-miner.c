@@ -607,7 +607,6 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 	char *str = NULL;
 	json_t *val, *res, *reason;
 	char s[345];
-	int i;
 	bool rc = false;
 
 	/* pass if the previous hash is not the current previous hash */
@@ -620,9 +619,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 
 	if(have_stratum)
 	{
-		uint32_t ntime, nonce;
-		uint16_t nvote;
-		char *ntimestr, *noncestr, *xnonce2str, *nvotestr;
+		char *noncestr;
 
 		noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
 		char hash[32];
@@ -985,9 +982,6 @@ err_out:
 
 static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 {
-	unsigned char merkle_root[64];
-	int i;
-
 	pthread_mutex_lock(&sctx->work_lock);
 
 	memcpy(work, &sctx->work, sizeof(struct work));
