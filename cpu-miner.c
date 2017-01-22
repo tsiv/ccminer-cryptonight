@@ -203,6 +203,9 @@ static pthread_mutex_t stats_lock;
 static unsigned long accepted_count = 0L;
 static unsigned long rejected_count = 0L;
 static double *thr_hashrates;
+static uint64_t *thr_totalhashes;
+static struct timeval stats_start;
+
 
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
@@ -1183,10 +1186,13 @@ static void *miner_thread(void *userdata)
 
 	uint32_t *const nonceptr = (uint32_t*)(((char*)work.data) + (jsonrpc_2 ? 39 : 76));
 
+	thr_totalhashes[thr_id] = 0;
+
 	while(1)
 	{
 		unsigned long hashes_done;
 		struct timeval tv_start, tv_end, diff;
+		double difftime;
 		int64_t max64;
 		int rc;
 
@@ -1264,17 +1270,24 @@ static void *miner_thread(void *userdata)
 		/* scan nonces for a proof-of-work hash */
 		rc = scanhash_cryptonight(thr_id, work.data, work.target,	max_nonce, &hashes_done, results);
 
+		thr_totalhashes[thr_id] += hashes_done;
+
 		/* record scanhash elapsed time */
 		gettimeofday(&tv_end, NULL);
 		timeval_subtract(&diff, &tv_end, &tv_start);
-		if(diff.tv_usec || diff.tv_sec)
+		difftime = diff.tv_sec + 1e-6 * diff.tv_usec;
+		if(difftime > 0)
 		{
 			pthread_mutex_lock(&stats_lock);
-			thr_hashrates[thr_id] = hashes_done / (diff.tv_sec + 1e-6 * diff.tv_usec);
+			thr_hashrates[thr_id] = hashes_done / difftime;
 			pthread_mutex_unlock(&stats_lock);
 		}
+
+		timeval_subtract(&diff, &tv_end, &stats_start);
+		difftime = diff.tv_sec + 1e-6 * diff.tv_usec;
+
 		if(!opt_quiet)
-			applog(LOG_INFO, "GPU #%d: %s, %.2f H/s", device_map[thr_id], device_name[thr_id], thr_hashrates[thr_id]);
+			applog(LOG_INFO, "GPU #%d: %s, %.2f H/s (%.2f H/s avg)", device_map[thr_id], device_name[thr_id], thr_hashrates[thr_id], thr_totalhashes[thr_id] / difftime);
 
 		if(opt_benchmark && thr_id == opt_n_threads - 1)
 		{
@@ -2182,6 +2195,10 @@ int main(int argc, char *argv[])
 	if(!thr_hashrates)
 		return 1;
 
+	thr_totalhashes = (uint64_t *)calloc(opt_n_threads, sizeof(uint64_t));
+	if(!thr_hashrates)
+		return 1;
+
 	/* init workio thread info */
 	work_thr_id = opt_n_threads;
 	thr = &thr_info[work_thr_id];
@@ -2234,6 +2251,7 @@ int main(int argc, char *argv[])
 		if(have_stratum)
 			tq_push(thr_info[stratum_thr_id].q, strdup(rpc_url));
 	}
+	gettimeofday(&stats_start, NULL);
 
 	/* start mining threads */
 	for(i = 0; i < opt_n_threads; i++)
