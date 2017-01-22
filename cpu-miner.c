@@ -515,8 +515,6 @@ err_out:
 
 static bool work_decode(const json_t *val, struct work *work)
 {
-	int i;
-
 	return rpc2_job_decode(val, work);
 }
 
