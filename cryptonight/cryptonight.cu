@@ -209,6 +209,8 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 			if((vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 			{
 				res = 1;
+				if(opt_debug)
+					applog(LOG_DEBUG, "GPU #%d: found nonce $%08X", device_map[thr_id], foundNonce[0]);
 				results[0] = foundNonce[0];
 				*hashes_done = nonce - first_nonce + throughput;
 				if(foundNonce[1] < 0xffffffff)
@@ -218,6 +220,8 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 					if((vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 					{
 						res++;
+						if(opt_debug)
+							applog(LOG_DEBUG, "GPU #%d: found nonce $%08X", device_map[thr_id], foundNonce[1]);
 						results[1] = foundNonce[1];
 					}
 					else
