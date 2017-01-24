@@ -45,10 +45,8 @@
 #pragma comment(lib, "winmm.lib")
 #endif
 
-#define PROGRAM_NAME		"minerd"
+#define PROGRAM_NAME		"ccminer-cryptonight"
 #define LP_SCANTIME		60
-#define HEAVYCOIN_BLKHDR_SZ		84
-#define MNR_BLKHDR_SZ 80
 #define JSON_BUF_LEN 345
 
 // from heavy.cu
@@ -1296,7 +1294,7 @@ static bool stratum_handle_response(char *buf)
 	val = JSON_LOADS(buf, &err);
 	if(!val)
 	{
-		applog(LOG_INFO, "JSON decode failed(%d): %s", err.line, err.text);
+		applog(LOG_ERR, "JSON decode failed(%d): %s", err.line, err.text);
 		goto out;
 	}
 
@@ -1478,7 +1476,7 @@ static void parse_arg(int key, char *arg)
 	switch(key)
 	{
 		case 'a':
-			applog(LOG_INFO, "Ignoring algo switch, this program does only cryptonight now.");
+			applog(LOG_WARNING, "Ignoring algo switch, this program does only cryptonight now.");
 			break;
 		case 'B':
 			opt_background = true;
@@ -1919,8 +1917,6 @@ int main(int argc, char *argv[])
 	parse_cmdline(argc, argv);
 	color_init();
 	cuda_deviceinfo();
-
-	applog(LOG_INFO, "Using JSON-RPC 2.0");
 
 	if(!opt_benchmark && !rpc_url)
 	{

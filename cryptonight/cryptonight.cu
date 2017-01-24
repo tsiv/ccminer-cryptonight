@@ -226,14 +226,14 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 					}
 					else
 					{
-						applog(LOG_INFO, "GPU #%d: result for nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[1]);
+						applog(LOG_WARNING, "GPU #%d: result for nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[1]);
 					}
 				}
 				return res;
 			}
 			else
 			{
-				applog(LOG_INFO, "GPU #%d: result for nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[0]);
+				applog(LOG_WARNING, "GPU #%d: result for nonce $%08X does not validate on CPU!", device_map[thr_id], foundNonce[0]);
 			}
 		}
 		if((nonce & 0x00ffffff) > (0x00ffffff - throughput))
