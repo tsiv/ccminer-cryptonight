@@ -498,6 +498,7 @@ bool rpc2_job_decode(const json_t *job, struct work *work) {
         memset(work->target, 0xff, sizeof(work->target));
         work->target[7] = rpc2_target;
         strncpy(work->job_id, rpc2_job_id, 128);
+        work->dlen = rpc2_bloblen;
     }
     return true;
 
@@ -640,7 +641,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
         if (jsonrpc_2) {
             noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
             char hash[32];
-            cryptonight_hash((void *)hash, (const void *)work->data, 76);
+            cryptonight_hash((void *)hash, (const void *)work->data, work->dlen);
             char *hashhex = bin2hex((const unsigned char *)hash, 32);
             snprintf(s, JSON_BUF_LEN,
                     "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}\r\n",
@@ -718,7 +719,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
         if(jsonrpc_2) {
             char *noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
             char hash[32];
-            cryptonight_hash((void *)hash, (const void *)work->data, 76);
+            cryptonight_hash((void *)hash, (const void *)work->data, work->dlen);
             char *hashhex = bin2hex((const unsigned char *)hash, 32);
             snprintf(s, JSON_BUF_LEN,
                     "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}\r\n",
@@ -1176,7 +1177,7 @@ static void *miner_thread(void *userdata)
 			pthread_mutex_lock(&g_work_lock);
             if ((*nonceptr) >= end_nonce
            	    && !(jsonrpc_2 ? memcmp(work.data, g_work.data, 39) ||
-           	            memcmp(((uint8_t*) work.data) + 43, ((uint8_t*) g_work.data) + 43, 33)
+           	            memcmp(((uint8_t*) work.data) + 43, ((uint8_t*) g_work.data) + 43, work.dlen-43)
            	      : memcmp(work.data, g_work.data, 76)))
             {
                 stratum_gen_work(&stratum, &g_work);
@@ -1202,7 +1203,7 @@ static void *miner_thread(void *userdata)
 				continue;
 			}
 		}
-        if (jsonrpc_2 ? memcmp(work.data, g_work.data, 39) || memcmp(((uint8_t*) work.data) + 43, ((uint8_t*) g_work.data) + 43, 33) : memcmp(work.data, g_work.data, 76)) {
+        if (jsonrpc_2 ? memcmp(work.data, g_work.data, 39) || memcmp(((uint8_t*) work.data) + 43, ((uint8_t*) g_work.data) + 43, work.dlen - 43) : memcmp(work.data, g_work.data, 76)) {
 			memcpy(&work, &g_work, sizeof(struct work));
             nonceptr = (uint32_t*) (((char*)work.data) + (jsonrpc_2 ? 39 : 76));
             *nonceptr = 0xffffffffU / opt_n_threads * thr_id;
@@ -1242,7 +1243,7 @@ static void *miner_thread(void *userdata)
 		gettimeofday(&tv_start, NULL);
 
 		/* scan nonces for a proof-of-work hash */
-        rc = scanhash_cryptonight(thr_id, work.data, work.target,
+        rc = scanhash_cryptonight(thr_id, work.data, work.dlen, work.target,
                               max_nonce, &hashes_done);
 
 //        if (opt_benchmark)
@@ -1465,7 +1466,8 @@ static void *daemon_thread(void *userdata) {
                     if (opt_debug)
                         applog(LOG_DEBUG, "DEBUG: got new work");
                     pthread_mutex_lock(&g_work_lock);
-                    hex2bin((unsigned char *)g_work.data, hasher, strlen(hasher)/2);
+                    g_work.dlen = strlen(hasher)/2;
+                    hex2bin((unsigned char *)g_work.data, hasher, g_work.dlen);
                     diff = 0xffffffffffffffffUL / diff;
                     g_work.target[6] = diff & 0xffffffff;
                     g_work.target[7] = diff >> 32;
