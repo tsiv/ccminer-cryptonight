@@ -1,4 +1,14 @@
 
+#ifdef __CUDACC__
+# define MY_ALIGN(n)    __align__(n)
+#elif defined(__GNUC__)
+# define MY_ALIGN(n)    __attribute__((aligned(n)))
+#elif defined(_MSC_VER)
+# define MY_ALIGN(n)    __declspec(align(n))
+#else
+# error "Unknown compiler, need MY_ALIGN definition"
+#endif
+
 #define MEMORY         (1 << 21) // 2 MiB / 2097152 B
 #define ITER           (1 << 20) // 1048576
 #define AES_BLOCK_SIZE  16
@@ -116,7 +126,7 @@ union cn_slow_hash_state {
     };
 };
 
-struct cryptonight_gpu_ctx {
+struct MY_ALIGN(8) cryptonight_gpu_ctx {
     uint32_t state[50];
     uint32_t a[4];
     uint32_t b[4];
