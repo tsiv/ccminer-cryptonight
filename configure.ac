@@ -1,4 +1,4 @@
-AC_INIT([ccminer-cryptonight], [2.00])
+AC_INIT([ccminer-cryptonight], [2.01])
 
 AC_PREREQ([2.59c])
 AC_CANONICAL_SYSTEM
