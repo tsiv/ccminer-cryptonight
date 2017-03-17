@@ -176,6 +176,7 @@ __host__ void cryptonight_extra_cpu_setData(int thr_id, const void *data, const 
 {
 	cudaMemcpy(d_input[thr_id], data, 19 * sizeof(uint32_t), cudaMemcpyHostToDevice);
 	cudaMemcpy(d_target[thr_id], pTargetIn, 8 * sizeof(uint32_t), cudaMemcpyHostToDevice);
+	cudaMemset(d_resultNonce[thr_id], 0xFF, 2 * sizeof(uint32_t));
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 }
 
@@ -205,7 +206,6 @@ __host__ void cryptonight_extra_cpu_final(int thr_id, int threads, uint32_t star
 	dim3 grid((threads + threadsperblock - 1) / threadsperblock);
 	dim3 block(threadsperblock);
 
-	cudaMemset(d_resultNonce[thr_id], 0xFF, 2*sizeof(uint32_t));
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 	cryptonight_extra_gpu_final << <grid, block >> >(threads, startNonce, d_target[thr_id], d_resultNonce[thr_id], d_ctx_state);
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
