@@ -262,7 +262,8 @@ __host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uin
 		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 		if(partcount > 1) usleep(device_bsleep[thr_id]);
 	}
-
+	cudaDeviceSynchronize();
+	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 	cryptonight_core_gpu_phase3 << <grid, block8 >> >(blocks*threads, d_long_state, d_ctx_state, d_ctx_key2);
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 }
