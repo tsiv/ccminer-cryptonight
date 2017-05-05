@@ -377,7 +377,7 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 	bool lp_scanning = longpoll_scan && !have_longpoll;
 
 	/* it is assumed that 'curl' is freshly [re]initialized at this pt */
-
+	curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_TRY);
 	if(opt_protocol)
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 	curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -855,6 +855,7 @@ bool stratum_connect(struct stratum_ctx *sctx, const char *url)
 	sctx->curl_url = (char*)malloc(strlen(url));
 	sprintf(sctx->curl_url, "http%s", strstr(url, "://"));
 
+	curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_TRY);
 	if(opt_protocol)
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 	curl_easy_setopt(curl, CURLOPT_URL, sctx->curl_url);
