@@ -132,6 +132,8 @@ static const char *algo_names[] = {
 	"cryptonight"
 };
 
+bool stop_mining = false;
+volatile bool mining_has_stopped[8] = {false};
 bool opt_colors = false;
 bool opt_debug = false;
 bool opt_protocol = false;
@@ -332,6 +334,34 @@ static time_t g_work_time;
 static pthread_mutex_t g_work_lock;
 
 static bool rpc2_login(CURL *curl);
+
+void cuda_devicereset(int threads);
+
+void proper_exit(int exitcode)
+{
+	pthread_mutex_lock(&g_work_lock);	//freeze stratum
+	stop_mining = true;
+	applog(LOG_INFO, "stopping %d threads", opt_n_threads);
+	bool everything_stopped;
+	do
+	{
+		everything_stopped = true;
+		for(int i = 0; i < opt_n_threads; i++)
+		{
+			if(!mining_has_stopped[i])
+				everything_stopped = false;
+		}
+	} while(!everything_stopped);
+	applog(LOG_INFO, "resetting GPUs");
+	cuda_devicereset(opt_n_threads);
+
+	curl_global_cleanup();
+
+#ifdef WIN32
+	timeEndPeriod(1); // else never executed
+#endif
+	exit(exitcode);
+}
 
 json_t *json_rpc2_call_recur(CURL *curl, const char *url,
 														 const char *userpass, json_t *rpc_req,
@@ -1842,6 +1872,24 @@ static void signal_handler(int sig)
 			break;
 	}
 }
+#else
+BOOL WINAPI ConsoleHandler(DWORD dwType)
+{
+	switch(dwType)
+	{
+		case CTRL_C_EVENT:
+			applog(LOG_INFO, "CTRL_C_EVENT received, exiting");
+			proper_exit(EXIT_SUCCESS);
+			break;
+		case CTRL_BREAK_EVENT:
+			applog(LOG_INFO, "CTRL_BREAK_EVENT received, exiting");
+			proper_exit(EXIT_SUCCESS);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
 #endif
 
 static int msver(void)
@@ -1867,7 +1915,6 @@ static int msver(void)
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;
-	long flags;
 	int i;
 	/*
 #ifdef WIN32
@@ -1928,7 +1975,7 @@ int main(int argc, char *argv[])
 	{
 		rpc_userpass = (char*)malloc(strlen(rpc_user) + strlen(rpc_pass) + 2);
 		if(!rpc_userpass)
-			return 1;
+			exit(EXIT_FAILURE);
 		sprintf(rpc_userpass, "%s:%s", rpc_user, rpc_pass);
 	}
 
@@ -1938,13 +1985,10 @@ int main(int argc, char *argv[])
 	pthread_mutex_init(&stratum.sock_lock, NULL);
 	pthread_mutex_init(&stratum.work_lock, NULL);
 
-	flags = !opt_benchmark && strncmp(rpc_url, "https:", 6)
-		? (CURL_GLOBAL_ALL & ~CURL_GLOBAL_SSL)
-		: CURL_GLOBAL_ALL;
-	if(curl_global_init(flags))
+	if(curl_global_init(CURL_GLOBAL_ALL))
 	{
 		applog(LOG_ERR, "CURL initialization failed");
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 
 #ifndef WIN32
@@ -1963,12 +2007,15 @@ int main(int argc, char *argv[])
 		signal(SIGINT, signal_handler);
 		signal(SIGTERM, signal_handler);
 	}
+	signal(SIGINT, signal_handler); 
+#else
+	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
 #endif
 
 	if(num_processors == 0)
 	{
 		applog(LOG_ERR, "No CUDA devices found! terminating.");
-		exit(1);
+		proper_exit(EXIT_FAILURE);
 	}
 	if(!opt_n_threads)
 		opt_n_threads = num_processors;
@@ -1980,19 +2027,19 @@ int main(int argc, char *argv[])
 
 	work_restart = (struct work_restart *)calloc(opt_n_threads, sizeof(*work_restart));
 	if(!work_restart)
-		return 1;
+		proper_exit(EXIT_FAILURE);
 
 	thr_info = (struct thr_info *)calloc(opt_n_threads + 3, sizeof(*thr));
 	if(!thr_info)
-		return 1;
+		proper_exit(EXIT_FAILURE);
 
 	thr_hashrates = (double *)calloc(opt_n_threads, sizeof(double));
 	if(!thr_hashrates)
-		return 1;
+		proper_exit(EXIT_FAILURE);
 
 	thr_totalhashes = (uint64_t *)calloc(opt_n_threads, sizeof(uint64_t));
 	if(!thr_hashrates)
-		return 1;
+		proper_exit(EXIT_FAILURE);
 
 	/* init workio thread info */
 	work_thr_id = opt_n_threads;
@@ -2000,13 +2047,13 @@ int main(int argc, char *argv[])
 	thr->id = work_thr_id;
 	thr->q = tq_new();
 	if(!thr->q)
-		return 1;
+		proper_exit(EXIT_FAILURE);
 
 	/* start work I/O thread */
 	if(pthread_create(&thr->pth, NULL, workio_thread, thr))
 	{
 		applog(LOG_ERR, "workio thread create failed");
-		return 1;
+		proper_exit(EXIT_FAILURE);
 	}
 
 	if(want_longpoll && !have_stratum)
@@ -2017,13 +2064,13 @@ int main(int argc, char *argv[])
 		thr->id = longpoll_thr_id;
 		thr->q = tq_new();
 		if(!thr->q)
-			return 1;
+			proper_exit(EXIT_FAILURE);
 
 		/* start longpoll thread */
 		if(unlikely(pthread_create(&thr->pth, NULL, longpoll_thread, thr)))
 		{
 			applog(LOG_ERR, "longpoll thread create failed");
-			return 1;
+			proper_exit(EXIT_FAILURE);
 		}
 	}
 	if(want_stratum)
@@ -2034,13 +2081,13 @@ int main(int argc, char *argv[])
 		thr->id = stratum_thr_id;
 		thr->q = tq_new();
 		if(!thr->q)
-			return 1;
+			proper_exit(EXIT_FAILURE);
 
 		/* start stratum thread */
 		if(unlikely(pthread_create(&thr->pth, NULL, stratum_thread, thr)))
 		{
 			applog(LOG_ERR, "stratum thread create failed");
-			return 1;
+			proper_exit(EXIT_FAILURE);
 		}
 
 		if(have_stratum)
@@ -2056,12 +2103,12 @@ int main(int argc, char *argv[])
 		thr->id = i;
 		thr->q = tq_new();
 		if(!thr->q)
-			return 1;
+			proper_exit(EXIT_FAILURE);
 
 		if(unlikely(pthread_create(&thr->pth, NULL, miner_thread, thr)))
 		{
 			applog(LOG_ERR, "thread %d create failed", i);
-			return 1;
+			proper_exit(EXIT_FAILURE);
 		}
 	}
 
@@ -2083,6 +2130,6 @@ int main(int argc, char *argv[])
 
 	applog(LOG_INFO, "workio thread dead, exiting.");
 
-	return 0;
+	proper_exit(EXIT_SUCCESS);
 }
 

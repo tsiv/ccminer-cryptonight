@@ -19,6 +19,16 @@ extern int device_mpcount[8];
 extern int device_map[8];
 extern int device_config[8][2];
 
+void cuda_devicereset(int threads)
+{
+	for(int i = 0; i < threads; i++)
+	{
+		cudaSetDevice(device_map[i]);
+		cudaDeviceSynchronize();
+		cudaDeviceReset();
+	}
+}
+
 // Zahl der CUDA Devices im System bestimmen
 extern "C" int cuda_num_devices()
 {
@@ -130,6 +140,9 @@ static uint32_t *d_ctx_key2[8];
 static uint32_t *d_ctx_text[8];
 
 extern bool opt_benchmark;
+extern bool stop_mining;
+extern volatile bool mining_has_stopped[8];
+
 
 extern "C" void cryptonight_hash(void* output, const void* input, size_t len);
 
@@ -197,6 +210,12 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 		cryptonight_extra_cpu_prepare(thr_id, throughput, nonce, d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id]);
 		cryptonight_core_cpu_hash(thr_id, cn_blocks, cn_threads, d_long_state[thr_id], d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id]);
 		cryptonight_extra_cpu_final(thr_id, throughput, nonce, foundNonce, d_ctx_state[thr_id]);
+
+		if(stop_mining)
+		{
+			mining_has_stopped[thr_id] = true;
+			pthread_exit(nullptr);
+		}
 
 		if(foundNonce[0] < 0xffffffff)
 		{
