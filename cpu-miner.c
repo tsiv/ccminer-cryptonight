@@ -161,6 +161,7 @@ bool want_longpoll = true;
 bool have_longpoll = false;
 bool want_stratum = true;
 bool have_stratum = false;
+bool have_daemon = false;
 static bool submit_old = false;
 bool use_syslog = false;
 static bool opt_background = false;
@@ -201,6 +202,7 @@ struct thr_info *thr_info;
 static int work_thr_id;
 int longpoll_thr_id = -1;
 int stratum_thr_id = -1;
+int daemon_thr_id = -1;
 struct work_restart *work_restart = NULL;
 static struct stratum_ctx stratum;
 int opt_cn_threads = 8;
@@ -496,6 +498,7 @@ bool rpc2_job_decode(const json_t *job, struct work *work) {
         memset(work->target, 0xff, sizeof(work->target));
         work->target[7] = rpc2_target;
         strncpy(work->job_id, rpc2_job_id, 128);
+        work->dlen = rpc2_bloblen;
     }
     return true;
 
@@ -614,11 +617,12 @@ static void share_result(int result, const char *reason)
 		applog(LOG_DEBUG, "DEBUG: reject reason: %s", reason);
 }
 
+#define BIG_BUF_LEN 4096
 static bool submit_upstream_work(CURL *curl, struct work *work)
 {
 	char *str = NULL;
 	json_t *val, *res, *reason;
-	char s[345];
+	char s[BIG_BUF_LEN];
 	int i;
 	bool rc = false;
 
@@ -637,7 +641,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
         if (jsonrpc_2) {
             noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
             char hash[32];
-            cryptonight_hash((void *)hash, (const void *)work->data, 76);
+            cryptonight_hash((void *)hash, (const void *)work->data, work->dlen);
             char *hashhex = bin2hex((const unsigned char *)hash, 32);
             snprintf(s, JSON_BUF_LEN,
                     "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}\r\n",
@@ -671,12 +675,51 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 			applog(LOG_ERR, "submit_upstream_work stratum_send_line failed");
 			goto out;
 		}
+    } else if (have_daemon) {
+        char *noncestr;
+        time_t work_time;
+        pthread_mutex_lock(&g_work_lock);
+        if (!g_work.xnonce3 ||
+            memcmp(g_work.xnonce3, work->xnonce3, work->xnonce3_len)) {
+            if (opt_debug)
+                applog(LOG_DEBUG, "DEBUG: stale work detected, discarding");
+            pthread_mutex_unlock(&g_work_lock);
+            free(work->xnonce3);
+            work->xnonce3 = NULL;
+            return true;
+        }
+        free(g_work.xnonce3);
+        g_work.xnonce3 = NULL;
+        work_time = g_work_time;
+        pthread_mutex_unlock(&g_work_lock);
+        noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
+        memcpy(work->xnonce3+78, noncestr, 8);
+        free(noncestr);
+        snprintf(s, BIG_BUF_LEN, "{\"method\": \"submitblock\", \"params\": [\"%s\"]}", work->xnonce3);
+        val = json_rpc_call(curl, rpc_url, NULL, s, false, false, NULL);
+        if (unlikely(!val)) {
+            applog(LOG_ERR, "submit_upstream_work json_rpc_call failed");
+            goto out;
+        }
+        /* tell poller we found a block, get new job */
+        tq_push(thr_info[daemon_thr_id].q, (void *)work_time);
+        res = json_object_get(val, "result");
+        if (!res)
+        {
+            res = json_object_get(val, "error");
+            reason = json_object_get(res, "message");
+        } else
+            reason = NULL;
+        json_t *status = json_object_get(res, "status");
+        share_result(!strcmp(status ? json_string_value(status) : "", "OK"),
+                reason ? json_string_value(reason) : NULL );
+        json_decref(val);
 	} else {
         /* build JSON-RPC request */
         if(jsonrpc_2) {
             char *noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
             char hash[32];
-            cryptonight_hash((void *)hash, (const void *)work->data, 76);
+            cryptonight_hash((void *)hash, (const void *)work->data, work->dlen);
             char *hashhex = bin2hex((const unsigned char *)hash, 32);
             snprintf(s, JSON_BUF_LEN,
                     "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}\r\n",
@@ -925,7 +968,7 @@ static void *workio_thread(void *userdata)
 		return NULL;
 	}
 
-    if(!have_stratum) {
+    if(!have_stratum && !have_daemon) {
         ok = workio_login(curl);
     }
 
@@ -1134,11 +1177,13 @@ static void *miner_thread(void *userdata)
 			pthread_mutex_lock(&g_work_lock);
             if ((*nonceptr) >= end_nonce
            	    && !(jsonrpc_2 ? memcmp(work.data, g_work.data, 39) ||
-           	            memcmp(((uint8_t*) work.data) + 43, ((uint8_t*) g_work.data) + 43, 33)
+           	            memcmp(((uint8_t*) work.data) + 43, ((uint8_t*) g_work.data) + 43, work.dlen-43)
            	      : memcmp(work.data, g_work.data, 76)))
             {
                 stratum_gen_work(&stratum, &g_work);
             }
+        } else if (have_daemon) {
+            pthread_mutex_lock(&g_work_lock);
 		} else {
 			/* obtain new work from internal workio thread */
 			pthread_mutex_lock(&g_work_lock);
@@ -1158,10 +1203,14 @@ static void *miner_thread(void *userdata)
 				continue;
 			}
 		}
-        if (jsonrpc_2 ? memcmp(work.data, g_work.data, 39) || memcmp(((uint8_t*) work.data) + 43, ((uint8_t*) g_work.data) + 43, 33) : memcmp(work.data, g_work.data, 76)) {
+        if (jsonrpc_2 ? memcmp(work.data, g_work.data, 39) || memcmp(((uint8_t*) work.data) + 43, ((uint8_t*) g_work.data) + 43, work.dlen - 43) : memcmp(work.data, g_work.data, 76)) {
 			memcpy(&work, &g_work, sizeof(struct work));
             nonceptr = (uint32_t*) (((char*)work.data) + (jsonrpc_2 ? 39 : 76));
             *nonceptr = 0xffffffffU / opt_n_threads * thr_id;
+            if (work.xnonce3) {
+                work.xnonce3 = (char *)malloc(work.xnonce3_len);
+                memcpy(work.xnonce3, g_work.xnonce3, work.xnonce3_len);
+            }
 		} else
             ++(*nonceptr);
 		pthread_mutex_unlock(&g_work_lock);
@@ -1194,7 +1243,7 @@ static void *miner_thread(void *userdata)
 		gettimeofday(&tv_start, NULL);
 
 		/* scan nonces for a proof-of-work hash */
-        rc = scanhash_cryptonight(thr_id, work.data, work.target,
+        rc = scanhash_cryptonight(thr_id, work.data, work.dlen, work.target,
                               max_nonce, &hashes_done);
 
 //        if (opt_benchmark)
@@ -1363,6 +1412,123 @@ out:
 		curl_easy_cleanup(curl);
 
 	return NULL;
+}
+
+static const char getblkc[] = "{\"method\": \"getblockcount\"}";
+
+#define WALLETLEN  95
+
+static void *daemon_thread(void *userdata) {
+    struct thr_info *mythr = (struct thr_info *)userdata;
+    CURL *curl = NULL;
+    uint64_t height, prevheight = 0;
+    int newblock = 1, delay = 32;
+    struct timespec ts;
+    char getblkt[] = "{\"method\": \"getblocktemplate\", \"params\": {\"reserve_size\": 8, \"wallet_address\": "
+        "\"9xaXMreKDK7bctpHtTE9zUUTgffkRvwZJ7UvyJGAQHkvBFqUYWwhVWWendW6NAdvtB8nn883WQxtU7cpe5eyJiUxLZ741t5\"}}";
+
+    if (strlen(rpc_user) != WALLETLEN) {
+        applog(LOG_ERR, "Invalid username / wallet address");
+        goto out;
+    }
+
+    curl = curl_easy_init();
+    if (unlikely(!curl)) {
+        applog(LOG_ERR, "CURL initialization failed");
+        goto out;
+    }
+
+    memcpy(getblkt+80, rpc_user, WALLETLEN);
+
+    applog(LOG_INFO, "Daemon-polling activated for %s", rpc_url);
+
+    while (1) {
+        json_t *val, *result = NULL, *jheight;
+        int err;
+
+        /* If we've worked on this job too long, get a new one */
+        if (time(0L) > g_work_time + 240)
+            newblock = 1;
+
+        val = json_rpc_call(curl, rpc_url, NULL, newblock ? getblkt : getblkc, false, false, &err);
+        if (likely(val))
+            result = json_object_get(val, "result");
+        if (result) {
+            time_t qtime;
+            if (newblock) {
+                jheight = json_object_get(result, "height");
+                if (jheight) {
+                    height = json_integer_value(jheight);
+                    const char *tmpl = json_string_value(json_object_get(result, "blocktemplate_blob"));
+                    const char *hasher = json_string_value(json_object_get(result, "blockhashing_blob"));
+                    uint64_t diff = json_integer_value(json_object_get(result, "difficulty"));
+                    applog(LOG_INFO, "Daemon set diff to %lu on new block", diff);
+                    if (opt_debug)
+                        applog(LOG_DEBUG, "DEBUG: got new work");
+                    pthread_mutex_lock(&g_work_lock);
+                    g_work.dlen = strlen(hasher)/2;
+                    hex2bin((unsigned char *)g_work.data, hasher, g_work.dlen);
+                    diff = 0xffffffffffffffffUL / diff;
+                    g_work.target[6] = diff & 0xffffffff;
+                    g_work.target[7] = diff >> 32;
+                    free(g_work.xnonce3);
+                    g_work.xnonce3 = strdup(tmpl);
+                    g_work.xnonce3_len = strlen(tmpl)+1;
+                    prevheight = height;
+                    time(&g_work_time);
+                    restart_threads();
+                    pthread_mutex_unlock(&g_work_lock);
+                    // reduce polling frequency right after
+                    // a new block has been announced.
+                    newblock = 0;
+                    delay = 32;
+                }
+            } else {
+                jheight = json_object_get(result, "count");
+                if (jheight) {
+                    height = json_integer_value(jheight);
+                    if (height != prevheight) {
+                        newblock = 1;
+                        json_decref(val);
+                        continue;
+                    }
+                }
+            }
+            json_decref(val);
+#ifdef _WIN32
+            { struct _timeb now;
+            _ftime(&now);
+            ts.tv_nsec = now.millitm * 1000000;
+            ts.tv_sec = now.time;
+            }
+#else
+            clock_gettime(CLOCK_REALTIME, &ts);
+#endif
+            ts.tv_sec += delay;
+again:
+            qtime = (time_t)tq_pop(mythr->q, &ts);
+            if (!qtime) {
+                /* timed out, adjust delay */
+                if (delay > 1)
+                    delay >>= 1;
+            } else if (qtime == g_work_time)
+                newblock = 1;
+            else
+                goto again;
+        } else {
+            if (val) {
+                result = json_object_get(val, "error");
+                applog(LOG_DEBUG, "DEBUG: getblocktemplate failed: %s", json_string_value(json_object_get(result, "message")));
+                json_decref(val);
+            }
+            restart_threads();
+            sleep(opt_fail_pause);
+            continue;
+        }
+    }
+
+out:
+    return NULL ;
 }
 
 static bool stratum_handle_response(char *buf)
@@ -1620,9 +1786,18 @@ static void parse_arg (int key, char *arg)
 		if (p) {
 			if (strncasecmp(arg, "http://", 7) 
                     && strncasecmp(arg, "https://", 8) 
-                    && strncasecmp(arg, "stratum+tcp://", 14))
+                    && strncasecmp(arg, "stratum+tcp://", 14)
+                    && strncasecmp(arg, "daemon+tcp://", 13))
 				show_usage_and_exit(1);
 			free(rpc_url);
+            if (!strncasecmp(arg, "daemon", 6)) {
+                have_daemon = true;
+                want_longpoll = false;
+                want_stratum = false;
+                arg += 6;
+                arg[0] = 'h';
+                arg[2] = 't';
+            }
 			rpc_url = strdup(arg);
 		} else {
 			if (!strlen(arg) || *arg == '/')
@@ -1996,7 +2171,7 @@ int main(int argc, char *argv[])
 	if (!work_restart)
 		return 1;
 
-	thr_info = (struct thr_info *)calloc(opt_n_threads + 3, sizeof(*thr));
+	thr_info = (struct thr_info *)calloc(opt_n_threads + 4, sizeof(*thr));
 	if (!thr_info)
 		return 1;
 	
@@ -2051,6 +2226,21 @@ int main(int argc, char *argv[])
 		if (have_stratum)
 			tq_push(thr_info[stratum_thr_id].q, strdup(rpc_url));
 	}
+    if (have_daemon) {
+        /* init daemon thread info */
+        daemon_thr_id = opt_n_threads + 3;
+        thr = &thr_info[daemon_thr_id];
+        thr->id = daemon_thr_id;
+        thr->q = tq_new();
+        if (!thr->q)
+            return 1;
+
+        /* start daemon thread */
+        if (unlikely(pthread_create(&thr->pth, NULL, daemon_thread, thr))) {
+            applog(LOG_ERR, "daemon thread create failed");
+            return 1;
+        }
+    }
 
 	/* start mining threads */
 	for (i = 0; i < opt_n_threads; i++) {

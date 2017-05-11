@@ -12,6 +12,7 @@
 typedef unsigned char BitSequence;
 typedef unsigned long long DataLength;
 
+static uint32_t d_inlen[8];
 static uint32_t *d_input[8];
 static uint32_t *d_target[8];
 static uint32_t *d_resultNonce[8];
@@ -43,7 +44,7 @@ const uint8_t sub_byte[16][16] = {
     { 0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16 }
 };
 
-__device__ __forceinline__ void cryptonight_aes_set_key( uint32_t *key, const uint32_t *data )
+__device__ void cryptonight_aes_set_key( uint32_t *key, const uint32_t *data )
 {
     int i, j;
     const int key_base = 8;
@@ -74,19 +75,19 @@ __device__ __forceinline__ void cryptonight_aes_set_key( uint32_t *key, const ui
 	}
 }
 
-__global__ void cryptonight_extra_gpu_prepare(int threads, uint32_t *d_input, uint32_t startNonce, struct cryptonight_gpu_ctx *d_ctx)
+__global__ void cryptonight_extra_gpu_prepare(int threads, uint32_t *d_input, int inlen, uint32_t startNonce, struct cryptonight_gpu_ctx *d_ctx)
 {
     int thread = (blockDim.x * blockIdx.x + threadIdx.x);
     
     if (thread < threads)
     {
         struct cryptonight_gpu_ctx ctx;
-        uint32_t input[19];
+        uint32_t input[32];
 
-        MEMCPY4(input, d_input, 19);
+        memcpy(input, d_input, inlen);
         *((uint32_t *)(((char *)input) + 39)) = startNonce + thread;
         
-        cn_keccak((uint8_t *)input, (uint8_t *)ctx.state);
+        cn_keccak((uint8_t *)input, inlen, (uint8_t *)ctx.state);
         cryptonight_aes_set_key(ctx.key1, ctx.state);
         cryptonight_aes_set_key(ctx.key2, ctx.state+8);
         XOR_BLOCKS_DST(ctx.state, ctx.state+8, ctx.a);
@@ -102,11 +103,11 @@ __global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, ui
    
     if (thread < threads)
     {
+        MY_ALIGN(8)uint32_t state[50];
         int i;
         uint32_t nonce = startNonce + thread;
         struct cryptonight_gpu_ctx *ctx = &d_ctx[thread];
         uint32_t hash[8];
-        uint32_t state[50];
 
         MEMCPY8(state, &ctx->state, 25);
         cn_keccakf((uint64_t *)state);
@@ -131,7 +132,9 @@ __global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, ui
         int position = -1;
         bool rc = true;
 
+#if 0
 #pragma unroll 8
+#endif
         for (i = 7; i >= 0; i--) {
             if (hash[i] > d_target[i]) {
                 if(position < i) {
@@ -155,13 +158,14 @@ __global__ void cryptonight_extra_gpu_final(int threads, uint32_t startNonce, ui
 
 __host__ void cryptonight_extra_cpu_setData(int thr_id, const void *data, const void *pTargetIn)
 {
-    cudaMemcpy(d_input[thr_id], data, 19*sizeof(uint32_t), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_input[thr_id], data, d_inlen[thr_id], cudaMemcpyHostToDevice);
     cudaMemcpy(d_target[thr_id], pTargetIn, 8*sizeof(uint32_t), cudaMemcpyHostToDevice);
 }
 
-__host__ void cryptonight_extra_cpu_init(int thr_id)
+__host__ void cryptonight_extra_cpu_init(int thr_id, int inlen)
 {
-    cudaMalloc(&d_input[thr_id], 19*sizeof(uint32_t)); 
+    d_inlen[thr_id] = inlen;
+    cudaMalloc(&d_input[thr_id], inlen); 
     cudaMalloc(&d_target[thr_id], 8*sizeof(uint32_t)); 
     cudaMalloc(&d_resultNonce[thr_id], sizeof(uint32_t)); 
     cudaMemcpyToSymbol(keccakf_rndc, h_keccakf_rndc, sizeof(h_keccakf_rndc), 0, cudaMemcpyHostToDevice);
@@ -181,7 +185,7 @@ __host__ void cryptonight_extra_cpu_prepare(int thr_id, int threads, uint32_t st
     dim3 grid((threads + threadsperblock-1)/threadsperblock);
     dim3 block(threadsperblock);
 
-    cryptonight_extra_gpu_prepare<<<grid, block, shared_size>>>(threads, d_input[thr_id], startNonce, d_ctx);
+    cryptonight_extra_gpu_prepare<<<grid, block, shared_size>>>(threads, d_input[thr_id], d_inlen[thr_id], startNonce, d_ctx);
     cudaDeviceSynchronize();
 }
 

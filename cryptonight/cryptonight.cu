@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include "cuda.h"
 #include "cuda_runtime.h"
 
@@ -113,13 +114,13 @@ extern void cryptonight_core_cpu_init(int thr_id, int threads);
 extern void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, struct cryptonight_gpu_ctx *d_ctx);
 
 extern void cryptonight_extra_cpu_setData(int thr_id, const void *data, const void *pTargetIn);
-extern void cryptonight_extra_cpu_init(int thr_id);
+extern void cryptonight_extra_cpu_init(int thr_id, int dlen);
 extern void cryptonight_extra_cpu_prepare(int thr_id, int threads, uint32_t startNonce, struct cryptonight_gpu_ctx *d_ctx);
 extern void cryptonight_extra_cpu_final(int thr_id, int threads, uint32_t startNonce, uint32_t *nonce, struct cryptonight_gpu_ctx *d_ctx);
 
 extern "C" void cryptonight_hash(void* output, const void* input, size_t len);
 
-extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
+extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, int dlen,
     const uint32_t *ptarget, uint32_t max_nonce,
     unsigned long *hashes_done)
 {
@@ -151,7 +152,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
             exit(1);
         }
 		cryptonight_core_cpu_init(thr_id, throughput);
-        cryptonight_extra_cpu_init(thr_id);
+        cryptonight_extra_cpu_init(thr_id, dlen);
 		init[thr_id] = true;
 	}
 
@@ -167,11 +168,11 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata,
         if (foundNonce < 0xffffffff)
 		{
 			uint32_t vhash64[8];
-            uint32_t tempdata[19];
-            memcpy(tempdata, pdata, 76);
+            uint32_t tempdata[32];
             uint32_t *tempnonceptr = (uint32_t*)(((char*)tempdata) + 39);
+            memcpy(tempdata, pdata, dlen);
 			*tempnonceptr = foundNonce;
-			cryptonight_hash(vhash64, tempdata, 76);
+			cryptonight_hash(vhash64, tempdata, dlen);
 
             if( (vhash64[7] <= Htarg) && fulltest(vhash64, ptarget) ) {
                 
