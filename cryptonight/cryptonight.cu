@@ -214,7 +214,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 		if(stop_mining)
 		{
 			mining_has_stopped[thr_id] = true;
-			pthread_exit(nullptr);
+			pthread_exit(NULL);
 		}
 
 		if(foundNonce[0] < 0xffffffff)
