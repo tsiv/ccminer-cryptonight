@@ -1911,7 +1911,7 @@ static int msver(void)
 	return version;
 }
 
-#define PROGRAM_VERSION "2.01"
+#define PROGRAM_VERSION "2.02"
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;
@@ -1948,7 +1948,7 @@ int main(int argc, char *argv[])
 
 	rpc_user = strdup("");
 	rpc_pass = strdup("");
-
+	
 	pthread_mutex_init(&applog_lock, NULL);
 	num_processors = cuda_num_devices();
 
