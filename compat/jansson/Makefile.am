@@ -1,4 +1,3 @@
-
 noinst_LIBRARIES	= libjansson.a
 
 libjansson_a_SOURCES	= \
