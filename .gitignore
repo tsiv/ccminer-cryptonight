@@ -1,4 +1,9 @@
 cpuminer-config.h
+*.m4
+*.in
+compat/*.in
+compat/jansson/*.in
+configure
 #ignore thumbnails created by windows
 Thumbs.db
 #Ignore files build by Visual Studio
@@ -27,4 +32,3 @@ obj/
 [Rr]elease*/
 *.db
 *.opendb
-
