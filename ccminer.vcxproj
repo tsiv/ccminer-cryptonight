@@ -21,6 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{36DC07F9-A4A6-4877-A146-1B960083CF6F}</ProjectGuid>
     <RootNamespace>ccminer</RootNamespace>
+    <ProjectName>ccminer-cryptonight</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -184,6 +185,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <Optimization>O3</Optimization>
       <KeepDir>$(CudaIntDir)\temp\$(PlatformTarget)</KeepDir>
       <MaxRegCount>128</MaxRegCount>
+      <CudaRuntime>Shared</CudaRuntime>
     </CudaCompile>
     <CudaLink>
       <PerformDeviceLink>false</PerformDeviceLink>
@@ -233,6 +235,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <Optimization>O3</Optimization>
       <KeepDir>$(CudaIntDir)\temp\$(PlatformTarget)</KeepDir>
       <MaxRegCount>128</MaxRegCount>
+      <CudaRuntime>Shared</CudaRuntime>
     </CudaCompile>
     <CudaLink>
       <PerformDeviceLink>false</PerformDeviceLink>
