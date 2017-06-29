@@ -335,7 +335,19 @@ static pthread_mutex_t g_work_lock;
 
 static bool rpc2_login(CURL *curl);
 
-void cuda_devicereset(int threads);
+void cuda_devicereset(int threads)
+{
+	for(int i = 0; i < threads; i++)
+	{
+		cudaError_t err;
+		err = cudaSetDevice(device_map[i]);
+		if(err == cudaSuccess)
+		{
+			cudaDeviceSynchronize();
+			cudaDeviceReset();
+		}
+	}
+}
 
 void proper_exit(int exitcode)
 {
@@ -1911,7 +1923,7 @@ static int msver(void)
 	return version;
 }
 
-#define PROGRAM_VERSION "2.02"
+#define PROGRAM_VERSION "2.03"
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;

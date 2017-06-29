@@ -19,16 +19,6 @@ extern int device_mpcount[8];
 extern int device_map[8];
 extern int device_config[8][2];
 
-void cuda_devicereset(int threads)
-{
-	for(int i = 0; i < threads; i++)
-	{
-		cudaSetDevice(device_map[i]);
-		cudaDeviceSynchronize();
-		cudaDeviceReset();
-	}
-}
-
 // Zahl der CUDA Devices im System bestimmen
 extern "C" int cuda_num_devices()
 {
