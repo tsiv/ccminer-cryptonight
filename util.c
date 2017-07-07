@@ -36,13 +36,13 @@
 #include "miner.h"
 #include "elist.h"
 
-char* CL_N;
-char* CL_RED;
-char* CL_GRN;
-char* CL_YLW;
-char* CL_BLU;
-char* CL_MAG;
-char* CL_CYN;
+char* CL_N = "";
+char* CL_RED = "";
+char* CL_GRN = "";
+char* CL_YLW = "";
+char* CL_BLU = "";
+char* CL_MAG = "";
+char* CL_CYN = "";
 
 struct data_buffer
 {
@@ -91,16 +91,6 @@ void color_init()
 		CL_BLU = "\033[34m";
 		CL_MAG = "\033[35m";
 		CL_CYN = "\033[36m";
-	}
-	else
-	{
-		CL_N = "";
-		CL_RED = "";
-		CL_GRN = "";
-		CL_YLW = "";
-		CL_BLU = "";
-		CL_MAG = "";
-		CL_CYN = "";
 	}
 }
 
