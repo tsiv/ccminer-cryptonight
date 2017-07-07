@@ -315,7 +315,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="crypto\oaes_lib.h" />
     <ClInclude Include="crypto\skein_port.h" />
     <ClInclude Include="cryptonight.h" />
-    <ClInclude Include="uint256.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="cryptonight\cuda_cryptonight_aes.cu">

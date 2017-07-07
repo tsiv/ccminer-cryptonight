@@ -137,9 +137,6 @@
     <ClInclude Include="cpuminer-config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="uint256.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="cuda_helper.h">
       <Filter>Header Files\CUDA</Filter>
     </ClInclude>
