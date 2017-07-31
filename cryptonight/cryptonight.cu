@@ -12,7 +12,6 @@ extern "C"
 }
 #include "cryptonight.h"
 
-
 extern char *device_name[8];
 extern int device_arch[8][2];
 extern int device_mpcount[8];
@@ -77,6 +76,38 @@ extern "C" void cuda_deviceinfo()
 		device_mpcount[i] = props.multiProcessorCount;
 		device_arch[i][0] = props.major;
 		device_arch[i][1] = props.minor;
+
+		device_config[i][0] = props.multiProcessorCount * (props.major < 3 ? 2 : 3);
+		device_config[i][1] = 64;
+
+		/* sm_20 devices can only run 512 threads per cuda block
+		* `cryptonight_core_gpu_phase1` and `cryptonight_core_gpu_phase3` starts
+		* `8 * ctx->device_threads` threads per block
+		*/
+		if(props.major < 6) {
+
+			//Try to stay under 950 threads ( 1900MiB memory per for hashes )
+			while(device_config[i][0] * device_config[i][1] >= 950 && device_config[i][1] > 2)
+			{
+				device_config[i][1] /= 2;
+			}
+
+			//Stay within 85% of the available RAM
+			while(device_config[i][1] > 2)
+			{
+				size_t freeMemory = 0;
+				size_t totalMemoery = 0;
+
+				cudaMemGetInfo(&freeMemory, &totalMemoery);
+				freeMemory = (freeMemory * size_t(85)) / 100;
+
+				if(freeMemory > size_t(device_config[i][0]) * size_t(device_config[i][1]) * size_t(2u * 1024u * 1024u)) {
+					break;
+				} else {
+					device_config[i][1] /= 2;
+				}
+			}
+		}
 	}
 }
 

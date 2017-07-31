@@ -1038,9 +1038,6 @@ static void *miner_thread(void *userdata)
 		affine_to_cpu(thr_id, thr_id % num_processors);
 	}
 
-	if(device_config[thr_id][0] == 0)
-		device_config[thr_id][0] = 4 * device_mpcount[thr_id];
-
 	applog(LOG_INFO, "GPU #%d: %s (%d SMX), using %d blocks of %d threads",
 				 device_map[thr_id], device_name[thr_id], device_mpcount[thr_id], device_config[thr_id][0], device_config[thr_id][1]);
 
@@ -1939,8 +1936,6 @@ int main(int argc, char *argv[])
 
 	for(i = 0; i < 8; i++)
 	{
-		device_config[i][0] = opt_cn_blocks;
-		device_config[i][1] = opt_cn_threads;
 		device_bfactor[i] = default_bfactor;
 		device_bsleep[i] = default_bsleep;
 	}
