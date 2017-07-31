@@ -691,6 +691,8 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 	}
 
 	rc = true;
+	free(str);
+	return rc;
 }
 
 static const char *rpc_req =
@@ -773,6 +775,8 @@ static bool rpc2_login(CURL *curl)
 	}
 
 	json_decref(val);
+
+	return rc;
 }
 
 static void workio_cmd_free(struct workio_cmd *wc)

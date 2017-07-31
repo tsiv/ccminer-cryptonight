@@ -18,7 +18,7 @@ extern int device_mpcount[8];
 extern int device_map[8];
 extern int device_config[8][2];
 
-// Zahl der CUDA Devices im System bestimmen
+//Number of CUDA Devices on the system
 extern "C" int cuda_num_devices()
 {
 	int version;
@@ -142,7 +142,6 @@ static bool substringsearch(const char *haystack, const char *needle, int &match
 	return false;
 }
 
-// CUDA Gerät nach Namen finden (gibt Geräte-Index zurück oder -1)
 extern "C" int cuda_finddevice(char *name)
 {
 	int num = cuda_num_devices();
