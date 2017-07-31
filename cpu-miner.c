@@ -45,11 +45,9 @@
 #pragma comment(lib, "winmm.lib")
 #endif
 
-#define PROGRAM_NAME		"ccminer-cryptonight"
-#define LP_SCANTIME		60
-#define JSON_BUF_LEN 345
+#define PROGRAM_NAME "ccminer-cryptonight"
+#define LP_SCANTIME	60
 
-// from heavy.cu
 #ifdef __cplusplus
 extern "C"
 {
@@ -115,21 +113,12 @@ enum workio_commands
 
 struct workio_cmd
 {
-	enum workio_commands	cmd;
-	struct thr_info		*thr;
+	enum workio_commands cmd;
+	struct thr_info	*thr;
 	union
 	{
 		struct work	*work;
 	} u;
-};
-
-typedef enum
-{
-	ALGO_CRYPTONIGHT
-} sha256_algos;
-
-static const char *algo_names[] = {
-	"cryptonight"
 };
 
 bool stop_mining = false;
@@ -153,11 +142,9 @@ int opt_timeout = 270;
 static int opt_scantime = 5;
 static json_t *opt_config;
 static const bool opt_time = true;
-static sha256_algos opt_algo = ALGO_CRYPTONIGHT;
 static int opt_n_threads = 0;
 static double opt_difficulty = 1; // CH
 bool opt_trust_pool = false;
-uint16_t opt_vote = 9999;
 static int num_processors;
 int device_map[8] = {0, 1, 2, 3, 4, 5, 6, 7}; // CB
 char *device_name[8]; // CB
@@ -221,63 +208,63 @@ struct option
 static char const usage[] = "\
 Usage: " PROGRAM_NAME " [OPTIONS]\n\
 	Options:\n\
-	  -d, --devices         takes a comma separated list of CUDA devices to use.\n\
-                          Device IDs start counting from 0! Alternatively takes\n\
-	                        string names of your cards like gtx780ti or gt640#2\n\
-	                        (matching 2nd gt640 in the PC)\n\
-    -f, --diff            Divide difficulty by this factor (std is 1) \n\
-	  -l, --launch=CONFIG   launch config for the Cryptonight kernel.\n\
-                          a comma separated list of values in form of\n\
-	                        AxB where A is the number of threads to run in\n\
-	                        each thread block and B is the number of thread\n\
-	                        blocks to launch. If less values than devices in use\n\
-                          are provided, the last value will be used for\n\
-                          the remaining devices. If you don't need to vary the\n\
-	                        value between devices, you can just enter a single value\n\
-	                        and it will be used for all devices. (default: 8x40)\n\
-		    --bfactor=X       Enables running the Cryptonight kernel in smaller pieces.\n\
-	                        The kernel will be run in 2^X parts according to bfactor,\n\
-                          with a small pause between parts, specified by --bsleep.\n\
-                          This is a per-device setting like the launch config.\n\
-	                        (default: 0 (no splitting) on Linux, 6 (64 parts) on Windows)\n\
-	      --bsleep=X        Insert a delay of X microseconds between kernel launches.\n\
-                          Use in combination with --bfactor to mitigate the lag\n\
-	                        when running on your primary GPU.\n\
-                          This is a per-device setting like the launch config.\n\
-	  -m, --trust-pool      trust the max block reward vote (maxvote) sent by the pool\n\
-	  -o, --url=URL         URL of mining server\n\
-    -O, --userpass=U:P    username:password pair for mining server\n\
-	  -u, --user=USERNAME   username for mining server\n\
-	  -p, --pass=PASSWORD   password for mining server\n\
-        --cert=FILE       certificate for mining server using SSL\n\
-	  -x, --proxy=[PROTOCOL://]HOST[:PORT]  connect through a proxy\n\
-    -k, --keepalive       send keepalive requests to avoid a stratum timeout\n\
-    -t, --threads=N       number of miner threads (default: number of nVidia GPUs)\n\
-	  -r, --retries=N       number of times to retry if a network call fails\n\
-                          (default: retry indefinitely)\n\
-	  -R, --retry-pause=N   time to pause between retries, in seconds (default: 30)\n\
-        --timeout=N       network timeout, in seconds (default: 270)\n\
-	  -s, --scantime=N      upper bound on time spent scanning current work when\n\
-                          long polling is unavailable, in seconds (default: 5)\n\
-	      --no-longpoll     disable X-Long-Polling support\n\
-	      --no-stratum      disable X-Stratum support\n\
-	  -q, --quiet           disable per-thread hashmeter output\n\
-	  -D, --debug           enable debug output\n\
-	      --color           enable output with colors\n\
-	  -P, --protocol-dump   verbose dump of protocol-level activities\n"
+		-d, --devices			takes a comma separated list of CUDA devices to use.\n\
+								Device IDs start counting from 0! Alternatively takes\n\
+								string names of your cards like gtx780ti or gt640#2\n\
+								(matching 2nd gt640 in the PC)\n\
+		-f, --diff				Divide difficulty by this factor (std is 1) \n\
+		-l, --launch=CONFIG		launch config for the Cryptonight kernel.\n\
+								a comma separated list of values in form of\n\
+								AxB where A is the number of threads to run in\n\
+								each thread block and B is the number of thread\n\
+								blocks to launch. If less values than devices in use\n\
+								are provided, the last value will be used for\n\
+								the remaining devices. If you don't need to vary the\n\
+								value between devices, you can just enter a single value\n\
+								and it will be used for all devices. (default: 8x40)\n\
+		    --bfactor=X			Enables running the Cryptonight kernel in smaller pieces.\n\
+								The kernel will be run in 2^X parts according to bfactor,\n\
+								with a small pause between parts, specified by --bsleep.\n\
+								This is a per-device setting like the launch config.\n\
+								(default: 0 (no splitting) on Linux, 6 (64 parts) on Windows)\n\
+			--bsleep=X			Insert a delay of X microseconds between kernel launches.\n\
+								Use in combination with --bfactor to mitigate the lag\n\
+								when running on your primary GPU.\n\
+								This is a per-device setting like the launch config.\n\
+		-m, --trust-pool		trust the max block reward vote (maxvote) sent by the pool\n\
+		-o, --url=URL			URL of mining server\n\
+		-O, --userpass=U:P		username:password pair for mining server\n\
+		-u, --user=USERNAME		username for mining server\n\
+		-p, --pass=PASSWORD		password for mining server\n\
+			--cert=FILE			certificate for mining server using SSL\n\
+		-x, --proxy=[PROTOCOL://]HOST[:PORT]  connect through a proxy\n\
+		-k, --keepalive			send keepalive requests to avoid a stratum timeout\n\
+		-t, --threads=N			number of miner threads (default: number of nVidia GPUs)\n\
+		-r, --retries=N			number of times to retry if a network call fails\n\
+								(default: retry indefinitely)\n\
+		-R, --retry-pause=N		time to pause between retries, in seconds (default: 30)\n\
+			--timeout=N			network timeout, in seconds (default: 270)\n\
+		-s, --scantime=N		upper bound on time spent scanning current work when\n\
+								long polling is unavailable, in seconds (default: 5)\n\
+			--no-longpoll		disable X-Long-Polling support\n\
+			--no-stratum		disable X-Stratum support\n\
+		-q, --quiet				disable per-thread hashmeter output\n\
+		-D, --debug				enable debug output\n\
+			--color				enable output with colors\n\
+		-P, --protocol-dump		verbose dump of protocol-level activities\n"
 #ifdef HAVE_SYSLOG_H
 "\
-	  -S, --syslog          use system log for output messages\n"
+		-S, --syslog			use system log for output messages\n"
 #endif
 #ifndef WIN32
 "\
-	  -B, --background      run the miner in the background\n"
+		-B, --background		run the miner in the background\n"
 #endif
 "\
-	      --benchmark       run in offline benchmark mode\n\
-	  -c, --config=FILE     load a JSON-format configuration file\n\
-	  -V, --version         display version information and exit\n\
-	  -h, --help            display this help text and exit\n\
+			--benchmark			run in offline benchmark mode\n\
+		-c, --config=FILE		load a JSON-format configuration file\n\
+		-V, --version			display version information and exit\n\
+		-h, --help				display this help text and exit\n\
 ";
 
 static char const short_options[] =
@@ -287,10 +274,9 @@ static char const short_options[] =
 #ifdef HAVE_SYSLOG_H
 "S"
 #endif
-"a:c:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:ml:";
+"c:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:ml:";
 
 static struct option const options[] = {
-	{"algo", 1, NULL, 'a'},
 #ifndef WIN32
 	{"background", 0, NULL, 'B'},
 #endif
@@ -665,7 +651,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		char hash[32];
 		cryptonight_hash((void *)hash, (const void *)work->data, 76);
 		char *hashhex = bin2hex((const unsigned char *)hash, 32);
-		snprintf(s, JSON_BUF_LEN,
+		snprintf(s, sizeof(s),
 				 "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}",
 				 rpc2_id, work->job_id, noncestr, hashhex);
 		free(hashhex);
@@ -684,7 +670,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		char hash[32];
 		cryptonight_hash((void *)hash, (const void *)work->data, 76);
 		char *hashhex = bin2hex((const unsigned char *)hash, 32);
-		snprintf(s, JSON_BUF_LEN,
+		snprintf(s, sizeof(s),
 				 "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}",
 				 rpc2_id, work->job_id, noncestr, hashhex);
 		free(noncestr);
@@ -761,7 +747,7 @@ static bool rpc2_login(CURL *curl)
 	struct timeval tv_start, tv_end, diff;
 	char s[345];
 
-	snprintf(s, JSON_BUF_LEN, "{\"method\": \"login\", \"params\": {\"login\": \"%s\", \"pass\": \"%s\", \"agent\": \"" USER_AGENT "\"}, \"id\": 1}", rpc_user, rpc_pass);
+	snprintf(s, sizeof(s), "{\"method\": \"login\", \"params\": {\"login\": \"%s\", \"pass\": \"%s\", \"agent\": \"" USER_AGENT "\"}, \"id\": 1}", rpc_user, rpc_pass);
 
 	gettimeofday(&tv_start, NULL);
 	val = json_rpc_call(curl, rpc_url, rpc_userpass, s, false, false, NULL);
@@ -1517,9 +1503,6 @@ static void parse_arg(int key, char *arg)
 
 	switch(key)
 	{
-		case 'a':
-			applog(LOG_WARNING, "Ignoring algo switch, this program does only cryptonight now.");
-			break;
 		case 'B':
 			opt_background = true;
 			break;
@@ -2124,10 +2107,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	applog(LOG_INFO, "%d miner threads started, "
-				 "using '%s' algorithm.",
-				 opt_n_threads,
-				 algo_names[opt_algo]);
+	applog(LOG_INFO, "%d miner threads started", opt_n_threads);
 
 #ifdef WIN32
 	timeBeginPeriod(1); // enable high timer precision (similar to Google Chrome Trick)
