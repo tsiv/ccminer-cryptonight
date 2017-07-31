@@ -464,21 +464,21 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 	if(!tmp)
 	{
 		applog(LOG_ERR, "JSON inval job id");
-		goto err_out;
+		return false;
 	}
 	const char *job_id = json_string_value(tmp);
 	tmp = json_object_get(job, "blob");
 	if(!tmp)
 	{
 		applog(LOG_ERR, "JSON inval blob");
-		goto err_out;
+		return false;
 	}
 	const char *hexblob = json_string_value(tmp);
 	int blobLen = (int)strlen(hexblob);
 	if(blobLen % 2 != 0 || ((blobLen / 2) < 40 && blobLen != 0) || (blobLen / 2) > 128)
 	{
 		applog(LOG_ERR, "JSON invalid blob length");
-		goto err_out;
+		return false;
 	}
 	if(blobLen != 0)
 	{
@@ -488,7 +488,7 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 		{
 			applog(LOG_ERR, "JSON inval blob");
 			pthread_mutex_unlock(&rpc2_job_lock);
-			goto err_out;
+			return false;
 		}
 		if(rpc2_blob)
 		{
@@ -526,7 +526,7 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 		if(!rpc2_blob)
 		{
 			applog(LOG_ERR, "Requested work before work was received");
-			goto err_out;
+			return false;
 		}
 		memcpy(work->data, rpc2_blob, rpc2_bloblen);
 		memset(work->target, 0xff, sizeof(work->target));
@@ -534,9 +534,6 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 		strncpy(work->job_id, rpc2_job_id, 128);
 	}
 	return true;
-
-err_out:
-	return false;
 }
 
 static bool work_decode(const json_t *val, struct work *work)
@@ -553,7 +550,7 @@ bool rpc2_login_decode(const json_t *val)
 	if(!res)
 	{
 		applog(LOG_ERR, "JSON invalid result");
-		goto err_out;
+		return false;
 	}
 
 	json_t *tmp;
@@ -561,13 +558,13 @@ bool rpc2_login_decode(const json_t *val)
 	if(!tmp)
 	{
 		applog(LOG_ERR, "JSON inval id");
-		goto err_out;
+		return false;
 	}
 	id = json_string_value(tmp);
 	if(!id)
 	{
 		applog(LOG_ERR, "JSON id is not a string");
-		goto err_out;
+		return false;
 	}
 
 	memcpy(&rpc2_id, id, 64);
@@ -579,13 +576,13 @@ bool rpc2_login_decode(const json_t *val)
 	if(!tmp)
 	{
 		applog(LOG_ERR, "JSON inval status");
-		goto err_out;
+		return false;
 	}
 	s = json_string_value(tmp);
 	if(!s)
 	{
 		applog(LOG_ERR, "JSON status is not a string");
-		goto err_out;
+		return false;
 	}
 	if(strcmp(s, "OK"))
 	{
@@ -594,8 +591,6 @@ bool rpc2_login_decode(const json_t *val)
 	}
 
 	return true;
-
-err_out: return false;
 }
 
 static void share_result(int result, const char *reason)
@@ -660,7 +655,8 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		if(unlikely(!stratum_send_line(&stratum, s)))
 		{
 			applog(LOG_ERR, "submit_upstream_work stratum_send_line failed");
-			goto out;
+			free(str);
+			return rc;
 		}
 	}
 	else
@@ -681,7 +677,8 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		if(unlikely(!val))
 		{
 			applog(LOG_ERR, "submit_upstream_work json_rpc_call failed");
-			goto out;
+			free(str);
+			return rc;
 		}
 		res = json_object_get(val, "result");
 		json_t *status = json_object_get(res, "status");
@@ -693,10 +690,6 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 	}
 
 	rc = true;
-
-out:
-	free(str);
-	return rc;
 }
 
 static const char *rpc_req =
@@ -754,7 +747,7 @@ static bool rpc2_login(CURL *curl)
 	gettimeofday(&tv_end, NULL);
 
 	if(!val)
-		goto end;
+		return rc;
 
 	//    applog(LOG_DEBUG, "JSON value: %s", json_dumps(val, 0));
 
@@ -762,13 +755,13 @@ static bool rpc2_login(CURL *curl)
 
 	json_t *result = json_object_get(val, "result");
 
-	if(!result) goto end;
+	if(!result) return rc;
 
 	json_t *job = json_object_get(result, "job");
 
 	if(!rpc2_job_decode(job, &g_work))
 	{
-		goto end;
+		return rc;
 	}
 
 	if(opt_debug && rc)
@@ -779,9 +772,6 @@ static bool rpc2_login(CURL *curl)
 	}
 
 	json_decref(val);
-
-end:
-	return rc;
 }
 
 static void workio_cmd_free(struct workio_cmd *wc)
@@ -988,22 +978,22 @@ static bool submit_work(struct thr_info *thr, const struct work *work_in)
 		return false;
 
 	wc->u.work = (struct work *)malloc(sizeof(*work_in));
-	if(!wc->u.work)
-		goto err_out;
+	if(!wc->u.work) {
+		workio_cmd_free(wc);
+		return false;
+	}
 
 	wc->cmd = WC_SUBMIT_WORK;
 	wc->thr = thr;
 	memcpy(wc->u.work, work_in, sizeof(*work_in));
 
 	/* send solution to workio thread */
-	if(!tq_push(thr_info[work_thr_id].q, wc))
-		goto err_out;
+	if(!tq_push(thr_info[work_thr_id].q, wc)) {
+		workio_cmd_free(wc);
+		return false;
+	}
 
 	return true;
-
-err_out:
-	workio_cmd_free(wc);
-	return false;
 }
 
 static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
