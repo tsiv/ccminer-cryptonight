@@ -47,21 +47,56 @@ extern "C" int cuda_num_devices()
 	}
 	return GPU_N;
 }
+extern "C" void cuda_set_device_config(int GPU_N)
+{
+	for(int i = 0; i < GPU_N; i++)
+	{
+		if(device_config[i][0] == 0)
+		{
+			device_config[i][0] = device_mpcount[i] * 4;
+			device_config[i][1] = 64;
 
-extern "C" void cuda_deviceinfo()
+			/* sm_20 devices can only run 512 threads per cuda block
+			* `cryptonight_core_gpu_phase1` and `cryptonight_core_gpu_phase3` starts
+			* `8 * ctx->device_threads` threads per block
+			*/
+			if(device_arch[i][0] < 6)
+			{
+				//Try to stay under 950 threads ( 1900MiB memory per for hashes )
+				while(device_config[i][0] * device_config[i][1] >= 950 && device_config[i][1] > 2)
+				{
+					device_config[i][1] /= 2;
+				}
+			}
+			//Stay within 85% of the available RAM
+			while(device_config[i][1] > 2)
+			{
+				size_t freeMemory = 0;
+				size_t totalMemoery = 0;
+
+				cudaError_t err = cudaMemGetInfo(&freeMemory, &totalMemoery);
+				if(err == cudaSuccess)
+				{
+					freeMemory = (freeMemory * size_t(85)) / 100;
+
+					if(freeMemory > size_t(device_config[i][0]) * size_t(device_config[i][1]) * 2097832)
+					{
+						break;
+					}
+					else
+					{
+						device_config[i][1] /= 2;
+					}
+				}
+				else
+					applog(LOG_WARNING, "GPU #%d: CUDA error: %s", device_map[i], cudaGetErrorString(err));
+			}
+		}
+	}
+}
+extern "C" int cuda_deviceinfo(int GPU_N)
 {
 	cudaError_t err;
-	int GPU_N;
-	err = cudaGetDeviceCount(&GPU_N);
-	if(err != cudaSuccess)
-	{
-		if(err != cudaErrorNoDevice)
-			applog(LOG_ERR, "No CUDA device found!");
-		else
-			applog(LOG_ERR, "Unable to query number of CUDA devices!");
-		exit(1);
-	}
-
 	for(int i = 0; i < GPU_N; i++)
 	{
 		cudaDeviceProp props;
@@ -76,39 +111,8 @@ extern "C" void cuda_deviceinfo()
 		device_mpcount[i] = props.multiProcessorCount;
 		device_arch[i][0] = props.major;
 		device_arch[i][1] = props.minor;
-
-		device_config[i][0] = props.multiProcessorCount * (props.major < 3 ? 2 : 3);
-		device_config[i][1] = 64;
-
-		/* sm_20 devices can only run 512 threads per cuda block
-		* `cryptonight_core_gpu_phase1` and `cryptonight_core_gpu_phase3` starts
-		* `8 * ctx->device_threads` threads per block
-		*/
-		if(props.major < 6) {
-
-			//Try to stay under 950 threads ( 1900MiB memory per for hashes )
-			while(device_config[i][0] * device_config[i][1] >= 950 && device_config[i][1] > 2)
-			{
-				device_config[i][1] /= 2;
-			}
-
-			//Stay within 85% of the available RAM
-			while(device_config[i][1] > 2)
-			{
-				size_t freeMemory = 0;
-				size_t totalMemoery = 0;
-
-				cudaMemGetInfo(&freeMemory, &totalMemoery);
-				freeMemory = (freeMemory * size_t(85)) / 100;
-
-				if(freeMemory > size_t(device_config[i][0]) * size_t(device_config[i][1]) * size_t(2u * 1024u * 1024u)) {
-					break;
-				} else {
-					device_config[i][1] /= 2;
-				}
-			}
-		}
 	}
+	return GPU_N;
 }
 
 static bool substringsearch(const char *haystack, const char *needle, int &match)

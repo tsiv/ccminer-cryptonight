@@ -53,7 +53,8 @@ extern "C"
 {
 #endif
 	int cuda_num_devices();
-	void cuda_deviceinfo();
+	void cuda_deviceinfo(int);
+	void cuda_set_device_config(int);
 	int cuda_finddevice(char *name);
 #ifdef __cplusplus
 }
@@ -1452,34 +1453,28 @@ void parse_device_config(int device, char *config, int *blocks, int *threads)
 	char *p;
 	int tmp_blocks, tmp_threads;
 
-	if(config == NULL) goto usedefault;
-
+	if(config == NULL)
+		return;
 
 	p = strtok(config, "x");
 	if(!p)
-		goto usedefault;
+		return;
 
 	tmp_threads = atoi(p);
 	if(tmp_threads < 4 || tmp_threads > 1024)
-		goto usedefault;
+		return;
 
 	p = strtok(NULL, "x");
 	if(!p)
-		goto usedefault;
+		return;
 
 	tmp_blocks = atoi(p);
 	if(tmp_blocks < 1)
-		goto usedefault;
+		return;
 
 	*blocks = tmp_blocks;
 	*threads = tmp_threads;
 	return;
-
-usedefault:
-	*blocks = 4 * device_mpcount[device];
-	*threads = opt_cn_threads;
-	return;
-
 }
 
 static void parse_arg(int key, char *arg)
@@ -1943,7 +1938,9 @@ int main(int argc, char *argv[])
 	/* parse command line */
 	parse_cmdline(argc, argv);
 	color_init();
-	cuda_deviceinfo();
+
+	cuda_deviceinfo(num_processors);
+	cuda_set_device_config(num_processors);
 
 	if(!opt_benchmark && !rpc_url)
 	{
