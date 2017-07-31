@@ -125,13 +125,13 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 
 	const int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 2;
 	const int sub = threadIdx.x & 3;
-	const int sub2 = sub & 2;
+	const int sub2 = threadIdx.x & 2;
 
 #if( __CUDA_ARCH__ < 300 )
 	extern __shared__ uint32_t shuffleMem[];
 	volatile uint32_t* sPtr = (volatile uint32_t*)(shuffleMem + (threadIdx.x & 0xFFFFFFFC));
 #else
-	volatile uint32_t* sPtr = NULL;
+	uint32_t* sPtr = NULL;
 #endif
 	if (thread >= threads)
 		return;
@@ -210,8 +210,8 @@ __global__ void cryptonight_core_gpu_phase3(int threads, const uint32_t * __rest
 	cn_aes_gpu_init(sharedMemory);
 	__syncthreads();
 
-	int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 3;
-	int sub = (threadIdx.x & 7) << 2;
+	const int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 3;
+	const int sub = (threadIdx.x & 7) << 2;
 
 	if(thread < threads)
 	{
@@ -219,7 +219,6 @@ __global__ void cryptonight_core_gpu_phase3(int threads, const uint32_t * __rest
 		MEMCPY8(key, d_ctx_key2 + thread * 40, 20);
 		MEMCPY8(text, d_ctx_state + thread * 50 + sub + 16, 2);
 
-		__syncthreads();
 		for(i = 0; i < 0x80000; i += 32)
 		{
 #pragma unroll

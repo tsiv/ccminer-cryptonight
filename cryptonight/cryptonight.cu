@@ -94,13 +94,13 @@ extern "C" void cuda_set_device_config(int GPU_N)
 		}
 	}
 }
-extern "C" int cuda_deviceinfo(int GPU_N)
+extern "C" void cuda_deviceinfo(int GPU_N)
 {
 	cudaError_t err;
 	for(int i = 0; i < GPU_N; i++)
 	{
 		cudaDeviceProp props;
-		cudaError_t err = cudaGetDeviceProperties(&props, device_map[i]);
+		err = cudaGetDeviceProperties(&props, device_map[i]);
 		if(err != cudaSuccess)
 		{
 			printf("\nGPU %d: %s\n%s line %d\n", device_map[i], cudaGetErrorString(err), __FILE__, __LINE__);
@@ -112,7 +112,6 @@ extern "C" int cuda_deviceinfo(int GPU_N)
 		device_arch[i][0] = props.major;
 		device_arch[i][1] = props.minor;
 	}
-	return GPU_N;
 }
 
 static bool substringsearch(const char *haystack, const char *needle, int &match)
