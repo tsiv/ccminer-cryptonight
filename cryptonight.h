@@ -17,6 +17,7 @@ struct uint3  blockDim;
 #define __syncthreads()
 #define asm(x)
 #define __shfl(a,b,c) 1
+#define __umul64hi(x, y) (x*y)
 #endif
 
 #define MEMORY         (1 << 21) // 2 MiB / 2097152 B
