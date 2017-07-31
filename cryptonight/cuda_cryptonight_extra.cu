@@ -182,10 +182,6 @@ __host__ void cryptonight_extra_cpu_setData(int thr_id, const void *data, const 
 
 __host__ void cryptonight_extra_cpu_init(int thr_id)
 {
-	cudaDeviceReset();
-	cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
-	cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
-
 	cudaMalloc(&d_input[thr_id], 19 * sizeof(uint32_t));
 	cudaMalloc(&d_target[thr_id], 8 * sizeof(uint32_t));
 	cudaMalloc(&d_resultNonce[thr_id], 2*sizeof(uint32_t));
