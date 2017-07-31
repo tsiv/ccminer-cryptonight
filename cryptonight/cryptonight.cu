@@ -18,7 +18,7 @@ extern int device_mpcount[8];
 extern int device_map[8];
 extern int device_config[8][2];
 
-// Zahl der CUDA Devices im System bestimmen
+//Number of CUDA Devices on the system
 extern "C" int cuda_num_devices()
 {
 	int version;

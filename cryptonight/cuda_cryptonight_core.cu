@@ -22,6 +22,35 @@ __device__ __forceinline__ uint64_t cuda_mul128(uint64_t multiplier, uint64_t mu
 	return(multiplier * multiplicand);
 }
 
+template< typename T >
+__device__ __forceinline__ T loadGlobal64(T * const addr)
+{
+	T x;
+	asm volatile(
+		"ld.global.cg.u64 %0, [%1];" : "=l"(x) : "l"(addr)
+		);
+	return x;
+}
+
+template< typename T >
+__device__ __forceinline__ T loadGlobal32(T * const addr)
+{
+	T x;
+	asm volatile(
+		"ld.global.cg.u32 %0, [%1];" : "=r"(x) : "l"(addr)
+		);
+	return x;
+}
+
+template< typename T >
+__device__ __forceinline__ void storeGlobal32(T* addr, T const & val)
+{
+	asm volatile(
+		"st.global.cg.u32 [%0], %1;" : : "l"(addr), "r"(val)
+		);
+
+}
+
 __global__ void cryptonight_core_gpu_phase1(int threads, uint32_t * __restrict__ long_state, uint32_t * __restrict__ ctx_state, uint32_t * __restrict__ ctx_key1)
 {
 	__shared__ uint32_t sharedMemory[1024];
@@ -57,6 +86,35 @@ __device__ __forceinline__ void MUL_SUM_XOR_DST(uint64_t a, uint64_t *__restrict
 	dst[1] = lo;
 }
 
+/** avoid warning `unused parameter` */
+template< typename T >
+__forceinline__ __device__ void unusedVar(const T&)
+{
+}
+
+/** shuffle data for
+*
+* - this method can be used with all compute architectures
+* - for <sm_30 shared memory is needed
+*
+* @param ptr pointer to shared memory, size must be `threadIdx.x * sizeof(uint32_t)`
+*            value can be NULL for compute architecture >=sm_30
+* @param sub thread number within the group, range [0;4)
+* @param value value to share with other threads within the group
+* @param src thread number within the group from where the data is read, range [0;4)
+*/
+__forceinline__ __device__ uint32_t shuffle(volatile uint32_t* ptr, const uint32_t sub, const int val, const uint32_t src)
+{
+#if( __CUDA_ARCH__ < 300 )
+	ptr[sub] = val;
+	return ptr[src & 3];
+#else
+	unusedVar(ptr);
+	unusedVar(sub);
+	return __shfl(val, src, 4);
+#endif
+}
+
 __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int partidx, uint32_t * __restrict__ d_long_state, uint32_t * __restrict__ d_ctx_a, uint32_t * __restrict__ d_ctx_b)
 {
 	__shared__ uint32_t sharedMemory[1024];
@@ -65,153 +123,84 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 
 	__syncthreads();
 
-#if __CUDA_ARCH__ >= 300 && __CUDA_ARCH__ < 600
-
 	const int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 2;
 	const int sub = threadIdx.x & 3;
+	const int sub2 = sub & 2;
 
-	if(thread < threads)
+#if( __CUDA_ARCH__ < 300 )
+	extern __shared__ uint32_t shuffleMem[];
+	volatile uint32_t* sPtr = (volatile uint32_t*)(shuffleMem + (threadIdx.x & 0xFFFFFFFC));
+#else
+	volatile uint32_t* sPtr = NULL;
+#endif
+	if (thread >= threads)
+		return;
+
+	int i, k;
+	uint32_t j;
+	const int batchsize = ITER >> (2 + bfactor);
+	const int start = partidx * batchsize;
+	const int end = start + batchsize;
+	uint32_t * long_state = &d_long_state[thread << 19];
+	uint32_t * ctx_a = d_ctx_a + thread * 4;
+	uint32_t * ctx_b = d_ctx_b + thread * 4;
+	uint32_t a, d[2];
+	uint32_t t1[2], t2[2], res;
+
+	a = ctx_a[sub];
+	d[1] = ctx_b[sub];
+#pragma unroll 2
+	for (i = start; i < end; ++i)
 	{
-		int i, j, k;
-		const int batchsize = ITER >> (2 + bfactor);
-		const int start = partidx * batchsize;
-		const int end = start + batchsize;
-		uint32_t * __restrict__ long_state = &d_long_state[thread << 19];
-		uint32_t * __restrict__ ctx_a = d_ctx_a + thread * 4;
-		uint32_t * __restrict__ ctx_b = d_ctx_b + thread * 4;
-		uint32_t a, b, c, x[4];
-		uint32_t t1[4], t2[4], res;
-		uint64_t reshi, reslo;
-
-		a = ctx_a[sub];
-		b = ctx_b[sub];
-
-#pragma unroll 8
-		for(i = start; i < end; ++i)
+#pragma unroll 2
+		for (int x = 0; x < 2; ++x)
 		{
+			j = ((shuffle(sPtr, sub, a, 0) & 0x1FFFF0) >> 2) + sub;
 
-			//j = ((uint32_t *)a)[0] & 0x1FFFF0;
-			j = (__shfl((int)a, 0, 4) & 0x1FFFF0) >> 2;
+			const uint32_t x_0 = loadGlobal32<uint32_t>(long_state + j);
+			const uint32_t x_1 = shuffle(sPtr, sub, x_0, sub + 1);
+			const uint32_t x_2 = shuffle(sPtr, sub, x_0, sub + 2);
+			const uint32_t x_3 = shuffle(sPtr, sub, x_0, sub + 3);
+			d[x] = a ^
+				t_fn0(x_0 & 0xff) ^
+				t_fn1((x_1 >> 8) & 0xff) ^
+				t_fn2((x_2 >> 16) & 0xff) ^
+				t_fn3((x_3 >> 24));
 
-			//cn_aes_single_round(sharedMemory, &long_state[j], c, a);
-			x[0] = long_state[j + sub];
-			x[1] = __shfl((int)x[0], sub + 1, 4);
-			x[2] = __shfl((int)x[0], sub + 2, 4);
-			x[3] = __shfl((int)x[0], sub + 3, 4);
-			c = a ^
-				t_fn0(x[0] & 0xff) ^
-				t_fn1((x[1] >> 8) & 0xff) ^
-				t_fn2((x[2] >> 16) & 0xff) ^
-				t_fn3((x[3] >> 24) & 0xff);
 
 			//XOR_BLOCKS_DST(c, b, &long_state[j]);
-			long_state[j + sub] = c ^ b;
+			t1[0] = shuffle(sPtr, sub, d[x], 0);
+			//long_state[j] = d[0] ^ d[1];
+			storeGlobal32(long_state + j, d[0] ^ d[1]);
 
 			//MUL_SUM_XOR_DST(c, a, &long_state[((uint32_t *)c)[0] & 0x1FFFF0]);
-			j = (__shfl((int)c, 0, 4) & 0x1FFFF0) >> 2;
+			j = ((*t1 & 0x1FFFF0) >> 2) + sub;
+
+			uint32_t yy[2];
+			*((uint64_t*)yy) = loadGlobal64<uint64_t>(((uint64_t *)long_state) + (j >> 1));
+			uint32_t zz[2];
+			zz[0] = shuffle(sPtr, sub, yy[0], 0);
+			zz[1] = shuffle(sPtr, sub, yy[1], 0);
+
+			t1[1] = shuffle(sPtr, sub, d[x], 1);
 #pragma unroll
-			for(k = 0; k < 2; k++)
-				t1[k] = __shfl((int)c, k, 4);
-#pragma unroll
-			for(k = 0; k < 4; k++)
-				t2[k] = __shfl((int)a, k, 4);
-			asm(
-				"mad.lo.u64 %0, %2, %3, %4;\n\t"
-				"mad.hi.u64 %1, %2, %3, %5;\n\t"
-				: "=l"(reslo), "=l"(reshi)
-				: "l"(((uint64_t *)t1)[0]), "l"(((uint64_t *)long_state)[j >> 1]), "l"(((uint64_t *)t2)[1]), "l"(((uint64_t *)t2)[0]));
-			res = (sub & 2 ? reslo : reshi) >> (sub & 1 ? 32 : 0);
-			a = long_state[j + sub] ^ res;
-			long_state[j + sub] = res;
+			for (k = 0; k < 2; k++)
+				t2[k] = shuffle(sPtr, sub, a, k + sub2);
 
-			//j = ((uint32_t *)a)[0] & 0x1FFFF0;
-			j = (__shfl((int)a, 0, 4) & 0x1FFFF0) >> 2;
+			*((uint64_t *)t2) += sub2 ? (*((uint64_t *)t1) * *((uint64_t*)zz)) : __umul64hi(*((uint64_t *)t1), *((uint64_t*)zz));
 
-			//cn_aes_single_round(sharedMemory, &long_state[j], b, a);
-			x[0] = long_state[j + sub];
-			x[1] = __shfl((int)x[0], sub + 1, 4);
-			x[2] = __shfl((int)x[0], sub + 2, 4);
-			x[3] = __shfl((int)x[0], sub + 3, 4);
-			b = a ^
-				t_fn0(x[0] & 0xff) ^
-				t_fn1((x[1] >> 8) & 0xff) ^
-				t_fn2((x[2] >> 16) & 0xff) ^
-				t_fn3((x[3] >> 24) & 0xff);
+			res = *((uint64_t *)t2) >> (sub & 1 ? 32 : 0);
 
-			//XOR_BLOCKS_DST(b, c, &long_state[j]);
-			long_state[j + sub] = c ^ b;
-
-			//MUL_SUM_XOR_DST(b, a, &long_state[((uint32_t *)b)[0] & 0x1FFFF0]);
-			j = (__shfl((int)b, 0, 4) & 0x1FFFF0) >> 2;
-#pragma unroll
-			for(k = 0; k < 2; k++)
-				t1[k] = __shfl((int)b, k, 4);
-#pragma unroll
-			for(k = 0; k < 4; k++)
-				t2[k] = __shfl((int)a, k, 4);
-			asm(
-				"mad.lo.u64 %0, %2, %3, %4;\n\t"
-				"mad.hi.u64 %1, %2, %3, %5;\n\t"
-				: "=l"(reslo), "=l"(reshi)
-				: "l"(((uint64_t *)t1)[0]), "l"(((uint64_t *)long_state)[j >> 1]), "l"(((uint64_t *)t2)[1]), "l"(((uint64_t *)t2)[0]));
-			res = (sub & 2 ? reslo : reshi) >> (sub & 1 ? 32 : 0);
-			a = long_state[j + sub] ^ res;
-			long_state[j + sub] = res;
-		}
-
-		if(bfactor > 0)
-		{
-			ctx_a[sub] = a;
-			ctx_b[sub] = b;
+			storeGlobal32(long_state + j, res);
+			a = (sub & 1 ? yy[1] : yy[0]) ^ res;
 		}
 	}
 
-#else
-	const uint32_t thread = blockDim.x * blockIdx.x + threadIdx.x;
-
-	if(thread < threads)
+	if (bfactor > 0)
 	{
-		int j;
-		const int batchsize = ITER >> (2 + bfactor);
-		const int start = partidx * batchsize;
-		const int end = start + batchsize;
-		uint32_t * __restrict__ long_state = &d_long_state[thread << 19];
-		uint64_t * __restrict__ ctx_a = (uint64_t*)(d_ctx_a + thread * 4);
-		uint64_t * __restrict__ ctx_b = (uint64_t*)(d_ctx_b + thread * 4);
-		uint64_t a[2], b[2], c[2];
-		uint32_t *a32 = (uint32_t*)a;
-		uint32_t *b32 = (uint32_t*)b;
-		uint32_t *c32 = (uint32_t*)c;
-
-		a[0] = ctx_a[0];
-		a[1] = ctx_a[1];
-		b[0] = ctx_b[0];
-		b[1] = ctx_b[1];
-
-		for(int i = start; i < end; ++i)
-		{
-			j = (a32[0] & 0x001FFFF0) >> 2;
-			cn_aes_single_round(sharedMemory, &long_state[j], c32, a32);
-			((uint64_t*)(long_state + j))[0] = c[0] ^ b[0];
-			((uint64_t*)(long_state + j))[1] = c[1] ^ b[1];
-			MUL_SUM_XOR_DST(c[0], a, (uint64_t*)&long_state[(c[0] & 0x001FFFF0) >> 2]);
-			j = (((uint32_t*)a)[0] & 0x1FFFF0) >> 2;
-			cn_aes_single_round(sharedMemory, &long_state[j], b32, a32);
-			((uint64_t*)(long_state + j))[0] = c[0] ^ b[0];
-			((uint64_t*)(long_state + j))[1] = c[1] ^ b[1];
-			MUL_SUM_XOR_DST(b[0], a, (uint64_t*)&long_state[(b[0] & 0x1FFFF0) >> 2]);
-		}
-
-		if(bfactor > 0)
-		{
-
-			ctx_a[0] = a[0];
-			ctx_a[1] = a[1];
-			ctx_b[0] = b[0];
-			ctx_b[1] = b[1];
-		}
+		ctx_a[sub] = a;
+		ctx_b[sub] = d[1];
 	}
-#endif // __CUDA_ARCH__ >= 300
 }
 
 __global__ void cryptonight_core_gpu_phase3(int threads, const uint32_t * __restrict__ long_state, uint32_t * __restrict__ d_ctx_state, uint32_t * __restrict__ d_ctx_key2)
@@ -219,6 +208,7 @@ __global__ void cryptonight_core_gpu_phase3(int threads, const uint32_t * __rest
 	__shared__ uint32_t sharedMemory[1024];
 
 	cn_aes_gpu_init(sharedMemory);
+	__syncthreads();
 
 	int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 3;
 	int sub = (threadIdx.x & 7) << 2;
@@ -252,18 +242,18 @@ __host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uin
 
 	int i, partcount = 1 << device_bfactor[thr_id];
 
-	cryptonight_core_gpu_phase1 << <grid, block8 >> >(blocks*threads, d_long_state, d_ctx_state, d_ctx_key1);
+	cryptonight_core_gpu_phase1 <<< grid, block8 >>>(blocks*threads, d_long_state, d_ctx_state, d_ctx_key1);
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 	if(partcount > 1) usleep(device_bsleep[thr_id]);
 
 	for(i = 0; i < partcount; i++)
 	{
-		cryptonight_core_gpu_phase2 << <grid, ((device_arch[thr_id][0] == 3 || device_arch[thr_id][0] == 5) ? block4 : block)>> >(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx_a, d_ctx_b);
+		cryptonight_core_gpu_phase2 <<< grid, ((device_arch[thr_id][0] == 3 || device_arch[thr_id][0] == 5) ? block4 : block) >>>(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx_a, d_ctx_b);
 		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 		if(partcount > 1) usleep(device_bsleep[thr_id]);
 	}
 	cudaDeviceSynchronize();
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
-	cryptonight_core_gpu_phase3 << <grid, block8 >> >(blocks*threads, d_long_state, d_ctx_state, d_ctx_key2);
+	cryptonight_core_gpu_phase3 <<< grid, block8 >>>(blocks*threads, d_long_state, d_ctx_state, d_ctx_key2);
 	exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 }
