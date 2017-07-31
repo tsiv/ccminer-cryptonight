@@ -248,7 +248,7 @@ __host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uin
 
 	for(i = 0; i < partcount; i++)
 	{
-		cryptonight_core_gpu_phase2 <<< grid, ((device_arch[thr_id][0] == 3 || device_arch[thr_id][0] == 5) ? block4 : block) >>>(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx_a, d_ctx_b);
+		cryptonight_core_gpu_phase2 <<< grid, block4 >>>(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx_a, d_ctx_b);
 		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 		if(partcount > 1) usleep(device_bsleep[thr_id]);
 	}
