@@ -138,7 +138,6 @@ static bool substringsearch(const char *haystack, const char *needle, int &match
 	return false;
 }
 
-// CUDA Gerät nach Namen finden (gibt Geräte-Index zurück oder -1)
 extern "C" int cuda_finddevice(char *name)
 {
 	int num = cuda_num_devices();
