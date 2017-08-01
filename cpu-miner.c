@@ -1937,6 +1937,7 @@ int main(int argc, char *argv[])
 	{
 		device_bfactor[i] = default_bfactor;
 		device_bsleep[i] = default_bsleep;
+		device_config[i][0] = opt_cn_blocks;
 	}
 
 	/* parse command line */
