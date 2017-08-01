@@ -40,11 +40,6 @@
 #include "compat.h"
 #include "miner.h"
 
-#ifdef WIN32
-#include <Mmsystem.h>
-#pragma comment(lib, "winmm.lib")
-#endif
-
 #define PROGRAM_NAME "ccminer-cryptonight"
 #define LP_SCANTIME	60
 
@@ -145,7 +140,6 @@ static json_t *opt_config;
 static const bool opt_time = true;
 static int opt_n_threads = 0;
 static double opt_difficulty = 1; // CH
-bool opt_trust_pool = false;
 static int num_processors;
 int device_map[8] = {0, 1, 2, 3, 4, 5, 6, 7}; // CB
 char *device_name[8]; // CB
@@ -232,7 +226,6 @@ Usage: " PROGRAM_NAME " [OPTIONS]\n\
 								Use in combination with --bfactor to mitigate the lag\n\
 								when running on your primary GPU.\n\
 								This is a per-device setting like the launch config.\n\
-		-m, --trust-pool		trust the max block reward vote (maxvote) sent by the pool\n\
 		-o, --url=URL			URL of mining server\n\
 		-O, --userpass=U:P		username:password pair for mining server\n\
 		-u, --user=USERNAME		username for mining server\n\
@@ -275,7 +268,7 @@ static char const short_options[] =
 #ifdef HAVE_SYSLOG_H
 "S"
 #endif
-"c:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:ml:";
+"c:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:l:";
 
 static struct option const options[] = {
 #ifndef WIN32
@@ -300,7 +293,6 @@ static struct option const options[] = {
 	{"syslog", 0, NULL, 'S'},
 #endif
 	{"threads", 1, NULL, 't'},
-	{"trust-pool", 0, NULL, 'm'},
 	{"timeout", 1, NULL, 'T'},
 	{"url", 1, NULL, 'o'},
 	{"user", 1, NULL, 'u'},
@@ -1557,9 +1549,6 @@ static void parse_arg(int key, char *arg)
 			break;
 		case 'v':
 			break;
-		case 'm':
-			opt_trust_pool = true;
-			break;
 		case 'u':
 			free(rpc_user);
 			rpc_user = strdup(arg);
@@ -1937,6 +1926,7 @@ int main(int argc, char *argv[])
 	{
 		device_bfactor[i] = default_bfactor;
 		device_bsleep[i] = default_bsleep;
+		device_config[i][0] = opt_cn_blocks;
 	}
 
 	/* parse command line */
@@ -1991,6 +1981,7 @@ int main(int argc, char *argv[])
 	signal(SIGINT, signal_handler); 
 #else
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
+	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
 #endif
 
 	if(num_processors == 0)
