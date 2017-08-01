@@ -40,11 +40,6 @@
 #include "compat.h"
 #include "miner.h"
 
-#ifdef WIN32
-#include <Mmsystem.h>
-#pragma comment(lib, "winmm.lib")
-#endif
-
 #define PROGRAM_NAME "ccminer-cryptonight"
 #define LP_SCANTIME	60
 
