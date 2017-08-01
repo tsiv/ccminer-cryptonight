@@ -1981,6 +1981,7 @@ int main(int argc, char *argv[])
 	signal(SIGINT, signal_handler); 
 #else
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
+	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
 #endif
 
 	if(num_processors == 0)
