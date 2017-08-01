@@ -140,7 +140,6 @@ static json_t *opt_config;
 static const bool opt_time = true;
 static int opt_n_threads = 0;
 static double opt_difficulty = 1; // CH
-bool opt_trust_pool = false;
 static int num_processors;
 int device_map[8] = {0, 1, 2, 3, 4, 5, 6, 7}; // CB
 char *device_name[8]; // CB
@@ -227,7 +226,6 @@ Usage: " PROGRAM_NAME " [OPTIONS]\n\
 								Use in combination with --bfactor to mitigate the lag\n\
 								when running on your primary GPU.\n\
 								This is a per-device setting like the launch config.\n\
-		-m, --trust-pool		trust the max block reward vote (maxvote) sent by the pool\n\
 		-o, --url=URL			URL of mining server\n\
 		-O, --userpass=U:P		username:password pair for mining server\n\
 		-u, --user=USERNAME		username for mining server\n\
@@ -270,7 +268,7 @@ static char const short_options[] =
 #ifdef HAVE_SYSLOG_H
 "S"
 #endif
-"c:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:ml:";
+"c:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:l:";
 
 static struct option const options[] = {
 #ifndef WIN32
@@ -295,7 +293,6 @@ static struct option const options[] = {
 	{"syslog", 0, NULL, 'S'},
 #endif
 	{"threads", 1, NULL, 't'},
-	{"trust-pool", 0, NULL, 'm'},
 	{"timeout", 1, NULL, 'T'},
 	{"url", 1, NULL, 'o'},
 	{"user", 1, NULL, 'u'},
@@ -1551,9 +1548,6 @@ static void parse_arg(int key, char *arg)
 			opt_n_threads = v;
 			break;
 		case 'v':
-			break;
-		case 'm':
-			opt_trust_pool = true;
 			break;
 		case 'u':
 			free(rpc_user);
