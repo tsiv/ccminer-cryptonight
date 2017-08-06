@@ -14,6 +14,7 @@ libjansson_a_SOURCES	= \
 			  pack_unpack.c	\
 			  strbuffer.c		\
 			  strbuffer.h		\
+			  strconv.c		\
 			  utf.c			\
 			  utf.h			\
 			  util.h		\
