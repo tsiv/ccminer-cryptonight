@@ -4,7 +4,7 @@ If you find this tool useful and like to support its continued development,
 then consider a donation.
 
 ## KlausT's donation address:
-' BTC/BTH: 1QHH2dibyYL5iyMDk3UN4PVvFVtrWD8QKp
+' BTC/BCH: 1QHH2dibyYL5iyMDk3UN4PVvFVtrWD8QKp
 
 ## tsiv's donation adresses:
 * BTC: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs
@@ -36,7 +36,7 @@ Monero and other coins based on the Cryptonight algorithm.
 THIS PROGRAM IS PROVIDED "AS-IS", USE IT AT YOUR OWN RISK!
 
 ## Command Line Options
-
+```
  -d, --devices         gives a comma separated list of CUDA device IDs
                        to operate on. Device IDs start counting from 0!
                        Alternatively give string names of your card like
@@ -86,7 +86,7 @@ THIS PROGRAM IS PROVIDED "AS-IS", USE IT AT YOUR OWN RISK!
  -c, --config=FILE     load a JSON-format configuration file
  -V, --version         display version information and exit
  -h, --help            display this help text and exit
-
+```
 
 ## AUTHORS
 
