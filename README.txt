@@ -60,7 +60,6 @@ most of their command line interface and options.
                        the remaining devices. If you don't need to vary the
                        value between devices, you can just enter a single
 		       value and it will be used for all devices.
-		       (default: 8x40)
      --bfactor=X       Enables running the Cryptonight kernel in smaller pieces.\n\
                        The kernel will be run in 2^X parts according to bfactor,\n\
                        with a small pause between parts, specified by --bsleep.\n\

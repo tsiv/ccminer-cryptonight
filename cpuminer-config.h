@@ -152,7 +152,7 @@
 #define PACKAGE_NAME "ccminer-cryptonight"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "ccminer-cryptonight 2.03"
+#define PACKAGE_STRING "ccminer-cryptonight 2.04"
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
