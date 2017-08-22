@@ -7,7 +7,7 @@
  *          
  *
  */
-
+#include <stddef.h>
 #include "c_groestl.h"
 #include "groestl_tables.h"
 
