@@ -742,7 +742,7 @@ static bool rpc2_login(CURL *curl)
 	gettimeofday(&tv_end, NULL);
 
 	if(!val)
-		return rc;
+		return false;
 
 	//    applog(LOG_DEBUG, "JSON value: %s", json_dumps(val, 0));
 
@@ -1320,16 +1320,10 @@ static bool stratum_handle_response(char *buf)
 	char *s;
 	json_t *status = json_object_get(res_val, "status");
 	if(status != NULL)
+	{
 		s = (char*)json_string_value(status);
-
-	// Keepalive response handling.
-	if(status != NULL && strcmp(s, "KEEPALIVED") == 0)
-	{
-		goto out;
-	}
-
-	if(status != NULL)
-	{
+		if(strcmp(s, "KEEPALIVED") == 0)
+			goto out;
 		valid = !strcmp(s, "OK") && json_is_null(err_val);
 	}
 	else
