@@ -74,7 +74,13 @@ extern "C" void cuda_set_device_config(int GPU_N)
 				size_t freeMemory = 0;
 				size_t totalMemoery = 0;
 
-				cudaError_t err = cudaMemGetInfo(&freeMemory, &totalMemoery);
+				cudaError_t err = cudaSetDevice(device_map[i]);
+				if(err != cudaSuccess)
+				{
+					applog(LOG_ERR, "GPU %d: %s", device_map[i], cudaGetErrorString(err));
+					exit(EXIT_FAILURE);
+				}
+				err = cudaMemGetInfo(&freeMemory, &totalMemoery);
 				if(err == cudaSuccess)
 				{
 					freeMemory = (freeMemory * size_t(85)) / 100;
@@ -89,7 +95,7 @@ extern "C" void cuda_set_device_config(int GPU_N)
 					}
 				}
 				else
-					applog(LOG_WARNING, "GPU #%d: CUDA error: %s", device_map[i], cudaGetErrorString(err));
+					applog(LOG_ERR, "GPU #%d: CUDA error: %s", device_map[i], cudaGetErrorString(err));
 			}
 		}
 	}
