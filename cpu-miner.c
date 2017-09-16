@@ -262,18 +262,13 @@ Usage: " PROGRAM_NAME " [OPTIONS]\n\
 ";
 
 static char const short_options[] =
-#ifndef WIN32
-"B"
-#endif
 #ifdef HAVE_SYSLOG_H
 "S"
 #endif
-"c:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:l:";
+"Bc:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:l:";
 
 static struct option const options[] = {
-#ifndef WIN32
 	{"background", 0, NULL, 'B'},
-#endif
 	{"benchmark", 0, NULL, 1005},
 	{"cert", 1, NULL, 1001},
 	{"config", 1, NULL, 'c'},
@@ -1986,6 +1981,8 @@ int main(int argc, char *argv[])
 	}
 	signal(SIGINT, signal_handler); 
 #else
+	if(opt_background)
+		applog(LOG_WARNING, "option -B is not supported under Windows");
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
 	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
 #endif

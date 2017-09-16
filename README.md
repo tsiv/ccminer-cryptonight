@@ -81,7 +81,7 @@ THIS PROGRAM IS PROVIDED "AS-IS", USE IT AT YOUR OWN RISK!
  -D, --debug           enable debug output
      --color           enable color output
  -P, --protocol-dump   verbose dump of protocol-level activities
- -B, --background      run the miner in the background
+ -B, --background      run the miner in the background (Linux only)
      --benchmark       run in offline benchmark mode
  -c, --config=FILE     load a JSON-format configuration file
  -V, --version         display version information and exit
