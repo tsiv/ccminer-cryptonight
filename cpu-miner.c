@@ -1858,15 +1858,17 @@ static int msver(void)
 {
 	int version;
 #ifdef _MSC_VER
-	switch(_MSC_VER)
+	switch(_MSC_VER/100)
 	{
-		case 1500: version = 2008; break;
-		case 1600: version = 2010; break;
-		case 1700: version = 2012; break;
-		case 1800: version = 2013; break;
-		case 1900: version = 2015; break;
+		case 15: version = 2008; break;
+		case 16: version = 2010; break;
+		case 17: version = 2012; break;
+		case 18: version = 2013; break;
+		case 19: version = 2015; break;
 		default: version = _MSC_VER / 100;
 	}
+	if(_MSC_VER > 1900)
+		version = 2017;
 #else
 	version = 0;
 #endif
