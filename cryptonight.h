@@ -1,4 +1,5 @@
 #pragma once
+#include "miner.h"
 #include <cuda_runtime.h>
 
 #ifdef __INTELLISENSE__ 
@@ -144,7 +145,7 @@ struct cryptonight_gpu_ctx {
 };
 */
 
-extern int device_map[8];
+extern int device_map[MAX_GPU];
 static inline void exit_if_cudaerror(int thr_id, const char *file, int line)
 {
 	cudaError_t err = cudaGetLastError();

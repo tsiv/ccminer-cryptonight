@@ -10,9 +10,9 @@
 #include <unistd.h>
 #endif
 
-extern int device_arch[8][2];
-extern int device_bfactor[8];
-extern int device_bsleep[8];
+extern int device_arch[MAX_GPU][2];
+extern int device_bfactor[MAX_GPU];
+extern int device_bsleep[MAX_GPU];
 
 #include "cuda_cryptonight_aes.cu"
 

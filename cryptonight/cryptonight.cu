@@ -12,11 +12,11 @@ extern "C"
 }
 #include "cryptonight.h"
 
-extern char *device_name[8];
-extern int device_arch[8][2];
-extern int device_mpcount[8];
-extern int device_map[8];
-extern int device_config[8][2];
+extern char *device_name[MAX_GPU];
+extern int device_arch[MAX_GPU][2];
+extern int device_mpcount[MAX_GPU];
+extern int device_map[MAX_GPU];
+extern int device_config[MAX_GPU][2];
 
 //Number of CUDA Devices on the system
 extern "C" int cuda_num_devices()
@@ -160,17 +160,17 @@ extern "C" int cuda_finddevice(char *name)
 	return -1;
 }
 
-static uint32_t *d_long_state[8];
-static uint32_t *d_ctx_state[8];
-static uint32_t *d_ctx_a[8];
-static uint32_t *d_ctx_b[8];
-static uint32_t *d_ctx_key1[8];
-static uint32_t *d_ctx_key2[8];
-static uint32_t *d_ctx_text[8];
+static uint32_t *d_long_state[MAX_GPU];
+static uint32_t *d_ctx_state[MAX_GPU];
+static uint32_t *d_ctx_a[MAX_GPU];
+static uint32_t *d_ctx_b[MAX_GPU];
+static uint32_t *d_ctx_key1[MAX_GPU];
+static uint32_t *d_ctx_key2[MAX_GPU];
+static uint32_t *d_ctx_text[MAX_GPU];
 
 extern bool opt_benchmark;
 extern bool stop_mining;
-extern volatile bool mining_has_stopped[8];
+extern volatile bool mining_has_stopped[MAX_GPU];
 
 
 extern "C" void cryptonight_hash(void* output, const void* input, size_t len);
@@ -199,7 +199,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 	}
 	const size_t alloc = MEMORY * throughput;
 
-	static bool init[8] = {false, false, false, false, false, false, false, false};
+	static bool init[MAX_GPU] = {false, false, false, false, false, false, false, false};
 	if(!init[thr_id])
 	{
 		err = cudaSetDevice(device_map[thr_id]);

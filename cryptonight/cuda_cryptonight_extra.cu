@@ -12,9 +12,9 @@
 typedef unsigned char BitSequence;
 typedef unsigned long long DataLength;
 
-static uint32_t *d_input[8];
+static uint32_t *d_input[MAX_GPU];
 static uint32_t *d_target[8];
-static uint32_t *d_resultNonce[8];
+static uint32_t *d_resultNonce[MAX_GPU];
 
 #include "cuda_cryptonight_keccak.cu"
 #include "cuda_cryptonight_blake.cu"

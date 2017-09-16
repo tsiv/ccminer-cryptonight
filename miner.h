@@ -70,6 +70,8 @@ enum {
 #define likely(expr) (expr)
 #endif
 
+#define MAX_GPU 8
+
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #endif
