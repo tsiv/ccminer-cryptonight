@@ -325,6 +325,8 @@ void cuda_devicereset(int threads)
 			cudaDeviceSynchronize();
 			cudaDeviceReset();
 		}
+		else
+			applog(LOG_WARNING, "can't reset GPU #%d", device_map[i]);
 	}
 }
 
