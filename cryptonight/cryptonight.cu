@@ -212,7 +212,7 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 		cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
 		cudaMalloc(&d_long_state[thr_id], alloc);
 		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
-		cudaMalloc(&d_ctx_state[thr_id], 50 * sizeof(uint32_t) * throughput);
+		cudaMalloc(&d_ctx_state[thr_id], 50 * sizeof(uint32_t) * throughput + 48);
 		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 		cudaMalloc(&d_ctx_key1[thr_id], 40 * sizeof(uint32_t) * throughput);
 		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
