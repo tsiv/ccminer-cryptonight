@@ -46,12 +46,11 @@ __device__ __forceinline__ void cryptonight_aes_set_key(uint32_t * __restrict__ 
 {
 	int i, j;
 	uint8_t temp[4];
-	const uint32_t aes_gf[] =
+	const uint32_t aes_gf[10] =
 	{
 		0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
 	};
 
-	MEMSET4(key, 0, 40);
 	MEMCPY4(key, data, 8);
 #pragma unroll
 	for(i = 8; i < 40; i++)
@@ -82,8 +81,8 @@ __global__ void cryptonight_extra_gpu_prepare(int threads, uint32_t * __restrict
 		uint32_t ctx_state[50];
 		uint32_t ctx_a[4];
 		uint32_t ctx_b[4];
-		uint32_t ctx_key1[40];
-		uint32_t ctx_key2[40];
+		uint32_t ctx_key1[40] = {0};
+		uint32_t ctx_key2[40] = {0};
 		uint32_t input[19];
 
 		MEMCPY4(input, d_input, 19);
@@ -95,11 +94,11 @@ __global__ void cryptonight_extra_gpu_prepare(int threads, uint32_t * __restrict
 		XOR_BLOCKS_DST(ctx_state, ctx_state + 8, ctx_a);
 		XOR_BLOCKS_DST(ctx_state + 4, ctx_state + 12, ctx_b);
 
-		memcpy(d_ctx_state + thread * 50, ctx_state, 50 * 4);
-		memcpy(d_ctx_a + thread * 4, ctx_a, 4 * 4);
-		memcpy(d_ctx_b + thread * 4, ctx_b, 4 * 4);
-		memcpy(d_ctx_key1 + thread * 40, ctx_key1, 40 * 4);
-		memcpy(d_ctx_key2 + thread * 40, ctx_key2, 40 * 4);
+		MEMCPY4(d_ctx_state + thread * 50, ctx_state, 50);
+		MEMCPY4(d_ctx_a + thread * 4, ctx_a, 4);
+		MEMCPY4(d_ctx_b + thread * 4, ctx_b, 4);
+		MEMCPY4(d_ctx_key1 + thread * 40, ctx_key1, 40);
+		MEMCPY4(d_ctx_key2 + thread * 40, ctx_key2, 40);
 	}
 }
 

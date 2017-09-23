@@ -107,17 +107,17 @@ struct uint3  blockDim;
     for( i_memcpy4 = 0; i_memcpy4 < cnt; i_memcpy4++ ) \
         out_memcpy4[i_memcpy4] = in_memcpy4[i_memcpy4]; }
 
-#define XOR_BLOCKS(a,b) { \
+#define XOR_BLOCKS(a,b)  \
     ((uint64_t *)a)[0] ^= ((uint64_t *)b)[0]; \
-    ((uint64_t *)a)[1] ^= ((uint64_t *)b)[1]; }
+    ((uint64_t *)a)[1] ^= ((uint64_t *)b)[1]; 
 
-#define XOR_BLOCKS_DST(x,y,z) { \
+#define XOR_BLOCKS_DST(x,y,z)  \
     ((uint64_t *)z)[0] = ((uint64_t *)(x))[0] ^ ((uint64_t *)(y))[0]; \
-    ((uint64_t *)z)[1] = ((uint64_t *)(x))[1] ^ ((uint64_t *)(y))[1]; }
+    ((uint64_t *)z)[1] = ((uint64_t *)(x))[1] ^ ((uint64_t *)(y))[1]; 
 
-#define XOR_BLOCKS_DST2(x,y,z) { \
+#define XOR_BLOCKS_DST2(x,y,z)  \
     ((uint64_t *)z)[0] = (x)[0] ^ (y)[0]; \
-    ((uint64_t *)z)[1] = (x)[1] ^ (y)[1]; }
+    ((uint64_t *)z)[1] = (x)[1] ^ (y)[1]; 
 
 #define E2I(x) ((size_t)(((*((uint64_t*)(x)) >> 4) & 0x1ffff)))
 

@@ -55,19 +55,18 @@ __global__ void cryptonight_core_gpu_phase1(int threads, uint32_t * __restrict__
 {
 	__shared__ uint32_t sharedMemory[1024];
 
-	cn_aes_gpu_init(sharedMemory);
-
 	const int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 3;
-	const int sub = (threadIdx.x & 7) << 2;
-
 	if(thread < threads)
 	{
+		cn_aes_gpu_init(sharedMemory);
+		__syncthreads();
+
+		const int sub = (threadIdx.x & 7) << 2;
 		uint32_t key[40], text[4];
 
 		MEMCPY8(key, ctx_key1 + thread * 40, 20);
 		MEMCPY8(text, ctx_state + thread * 50 + sub + 16, 2);
 
-		__syncthreads();
 		for(int i = 0; i < 0x80000; i += 32)
 		{
 			cn_aes_pseudo_round_mut(sharedMemory, text, key);
