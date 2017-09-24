@@ -87,46 +87,11 @@ __device__ __forceinline__ void MUL_SUM_XOR_DST(uint64_t a, uint64_t *__restrict
 	dst[1] = lo;
 }
 
-/** avoid warning `unused parameter` */
-template< typename T >
-__forceinline__ __device__ void unusedVar(const T&)
-{
-}
-
-/** shuffle data for
-*
-* - this method can be used with all compute architectures
-* - for <sm_30 shared memory is needed
-*
-* @param ptr pointer to shared memory, size must be `threadIdx.x * sizeof(uint32_t)`
-*            value can be NULL for compute architecture >=sm_30
-* @param sub thread number within the group, range [0;4)
-* @param value value to share with other threads within the group
-* @param src thread number within the group from where the data is read, range [0;4)
-*/
-__forceinline__ __device__ uint32_t shuffle(volatile uint32_t* ptr, const uint32_t sub, const int val, const uint32_t src)
-{
-#if( __CUDA_ARCH__ < 300 )
-	ptr[sub] = val;
-	return ptr[src & 3];
-#else
-	unusedVar(ptr);
-	unusedVar(sub);
-	return __shfl(val, src, 4);
-#endif
-}
-
 __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int partidx, uint32_t * __restrict__ d_long_state, uint32_t * __restrict__ d_ctx_a, uint32_t * __restrict__ d_ctx_b)
 {
 	__shared__ uint32_t sharedMemory[1024];
 
 	cn_aes_gpu_init(sharedMemory);
-#if( __CUDA_ARCH__ < 300 )
-	extern __shared__ uint32_t shuffleMem[];
-	volatile uint32_t* sPtr = (volatile uint32_t*)(shuffleMem + (threadIdx.x & 0xFFFFFFFC));
-#else
-	uint32_t* sPtr = NULL;
-#endif
 	__syncthreads();
 
 	const int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 2;
@@ -155,12 +120,12 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 #pragma unroll 2
 		for (int x = 0; x < 2; ++x)
 		{
-			j = ((shuffle(sPtr, sub, a, 0) & 0x1FFFF0) >> 2) + sub;
+			j = ((__shfl(a, 0, 4) & 0x1FFFF0) >> 2) + sub;
 
 			const uint32_t x_0 = loadGlobal32<uint32_t>(long_state + j);
-			const uint32_t x_1 = shuffle(sPtr, sub, x_0, sub + 1);
-			const uint32_t x_2 = shuffle(sPtr, sub, x_0, sub + 2);
-			const uint32_t x_3 = shuffle(sPtr, sub, x_0, sub + 3);
+			const uint32_t x_1 = __shfl(x_0, sub + 1, 4);
+			const uint32_t x_2 = __shfl(x_0, sub + 2, 4);
+			const uint32_t x_3 = __shfl(x_0, sub + 3, 4);
 			d[x] = a ^
 				t_fn0(x_0 & 0xff) ^
 				t_fn1((x_1 >> 8) & 0xff) ^
@@ -169,7 +134,7 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 
 
 			//XOR_BLOCKS_DST(c, b, &long_state[j]);
-			t1[0] = shuffle(sPtr, sub, d[x], 0);
+			t1[0] = __shfl(d[x], 0, 4);
 			//long_state[j] = d[0] ^ d[1];
 			storeGlobal32(long_state + j, d[0] ^ d[1]);
 
@@ -179,13 +144,13 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 			uint32_t yy[2];
 			*((uint64_t*)yy) = loadGlobal64<uint64_t>(((uint64_t *)long_state) + (j >> 1));
 			uint32_t zz[2];
-			zz[0] = shuffle(sPtr, sub, yy[0], 0);
-			zz[1] = shuffle(sPtr, sub, yy[1], 0);
+			zz[0] = __shfl(yy[0], 0, 4);
+			zz[1] = __shfl(yy[1], 0, 4);
 
-			t1[1] = shuffle(sPtr, sub, d[x], 1);
+			t1[1] = __shfl(d[x], 1, 4);
 #pragma unroll
 			for (k = 0; k < 2; k++)
-				t2[k] = shuffle(sPtr, sub, a, k + sub2);
+				t2[k] = __shfl(a, k + sub2, 4);
 
 			*((uint64_t *)t2) += sub2 ? (*((uint64_t *)t1) * *((uint64_t*)zz)) : __umul64hi(*((uint64_t *)t1), *((uint64_t*)zz));
 
