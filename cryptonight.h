@@ -112,8 +112,8 @@ struct uint3  blockDim;
     ((uint64_t *)a)[1] ^= ((uint64_t *)b)[1]; 
 
 #define XOR_BLOCKS_DST(x,y,z)  \
-    ((uint64_t *)z)[0] = ((uint64_t *)(x))[0] ^ ((uint64_t *)(y))[0]; \
-    ((uint64_t *)z)[1] = ((uint64_t *)(x))[1] ^ ((uint64_t *)(y))[1]; 
+    ((uint64_t *)(z))[0] = ((uint64_t *)(x))[0] ^ ((uint64_t *)(y))[0]; \
+    ((uint64_t *)(z))[1] = ((uint64_t *)(x))[1] ^ ((uint64_t *)(y))[1]; 
 
 #define XOR_BLOCKS_DST2(x,y,z)  \
     ((uint64_t *)z)[0] = (x)[0] ^ (y)[0]; \

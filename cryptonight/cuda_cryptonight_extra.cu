@@ -78,7 +78,7 @@ __global__ void cryptonight_extra_gpu_prepare(int threads, const uint32_t * __re
 
 	if(thread < threads)
 	{
-		uint32_t ctx_state[50];
+		uint64_t ctx_state[25];
 		uint32_t ctx_a[4];
 		uint32_t ctx_b[4];
 		uint32_t ctx_key1[40] = {0};
@@ -86,13 +86,18 @@ __global__ void cryptonight_extra_gpu_prepare(int threads, const uint32_t * __re
 		uint32_t input[19];
 
 		MEMCPY4(input, d_input, 19);
-		*((uint32_t *)(((char *)input) + 39)) = startNonce + thread;
 
-		cn_keccak((uint8_t *)input, (uint8_t *)ctx_state);
-		cryptonight_aes_set_key(ctx_key1, ctx_state);
-		cryptonight_aes_set_key(ctx_key2, ctx_state + 8);
-		XOR_BLOCKS_DST(ctx_state, ctx_state + 8, ctx_a);
-		XOR_BLOCKS_DST(ctx_state + 4, ctx_state + 12, ctx_b);
+		uint32_t nonce = startNonce + thread;
+		*(((uint8_t *)input) + 39) = nonce & 0xff;
+		*(((uint8_t *)input) + 40) = (nonce >> 8) & 0xff;
+		*(((uint8_t *)input) + 41) = (nonce >> 16) & 0xff;
+		*(((uint8_t *)input) + 42) = (nonce >> 24) & 0xff;
+
+		cn_keccak(input, ctx_state);
+		cryptonight_aes_set_key(ctx_key1, (uint32_t*)ctx_state);
+		cryptonight_aes_set_key(ctx_key2, (uint32_t*)(ctx_state + 8));
+		XOR_BLOCKS_DST(ctx_state, ctx_state + 4, ctx_a);
+		XOR_BLOCKS_DST(ctx_state + 2, ctx_state + 6, ctx_b);
 
 		MEMCPY4(d_ctx_state + thread * 50, ctx_state, 50);
 		MEMCPY4(d_ctx_a + thread * 4, ctx_a, 4);
