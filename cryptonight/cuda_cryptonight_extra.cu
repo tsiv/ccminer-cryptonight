@@ -95,7 +95,7 @@ __global__ void cryptonight_extra_gpu_prepare(int threads, const uint32_t * __re
 
 		cn_keccak(input, ctx_state);
 		cryptonight_aes_set_key(ctx_key1, (uint32_t*)ctx_state);
-		cryptonight_aes_set_key(ctx_key2, (uint32_t*)(ctx_state + 8));
+		cryptonight_aes_set_key(ctx_key2, (uint32_t*)(ctx_state + 4));
 		XOR_BLOCKS_DST(ctx_state, ctx_state + 4, ctx_a);
 		XOR_BLOCKS_DST(ctx_state + 2, ctx_state + 6, ctx_b);
 
