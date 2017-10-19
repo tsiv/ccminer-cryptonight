@@ -1954,8 +1954,8 @@ int main(int argc, char *argv[])
 	parse_cmdline(argc, argv);
 	color_init();
 
-	cuda_deviceinfo(num_processors);
-	cuda_set_device_config(num_processors);
+	cuda_deviceinfo(opt_n_threads);
+	cuda_set_device_config(opt_n_threads);
 
 	if(!opt_benchmark && !rpc_url)
 	{
