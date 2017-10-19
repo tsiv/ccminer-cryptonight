@@ -1639,7 +1639,7 @@ static void parse_arg(int key, char *arg)
 		case 'd': // CB
 		{
 			int i;
-			bool gpu[32] = {0};
+			bool gpu[32] = {false};
 			char * pch = strtok(arg, ",");
 			opt_n_threads = 0;
 			while(pch != NULL)
@@ -1647,20 +1647,25 @@ static void parse_arg(int key, char *arg)
 				if(pch[0] >= '0' && pch[0] <= '9' && pch[1] == '\0')
 				{
 					i = atoi(pch);
-					if(i < num_processors && gpu[i] == false)
+					if(i < num_processors && gpu[i] == false && i < MAX_GPU)
 					{
 						gpu[i] = true;
 						device_map[opt_n_threads++] = i;
 					}
 					else
 					{
-						if(gpu[i] == true)
-							applog(LOG_WARNING, "Selected gpu #%d more than once in -d option. This is not supported.", i);
-						else
+						if(i >= MAX_GPU)
 						{
-							applog(LOG_ERR, "Non-existant CUDA device #%d specified in -d option", i);
+							applog(LOG_ERR, "Only %d gpus are supported in this ccminer build.", MAX_GPU);
 							proper_exit(1);
 						}
+						if(gpu[i] == true)
+						{
+							applog(LOG_ERR, "Selected gpu #%d more than once in -d option. This is not supported.", i);
+							proper_exit(1);
+						}
+						applog(LOG_ERR, "Non-existant CUDA device #%d specified in -d option", i);
+						proper_exit(1);
 					}
 				}
 				else
@@ -1931,6 +1936,8 @@ int main(int argc, char *argv[])
 		applog(LOG_ERR, "No CUDA devices found! terminating.");
 		exit(EXIT_FAILURE);
 	}
+	else
+		applog(LOG_INFO, "%d CUDA devices detected", num_processors);
 
 	if(!opt_n_threads)
 		opt_n_threads = num_processors;
