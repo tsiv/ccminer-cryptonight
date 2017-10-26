@@ -1891,7 +1891,7 @@ static int msver(void)
 	return version;
 }
 
-#define PROGRAM_VERSION "2.05"
+#define PROGRAM_VERSION "2.06beta"
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;
