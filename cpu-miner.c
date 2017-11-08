@@ -1647,14 +1647,14 @@ static void parse_arg(int key, char *arg)
 				if(pch[0] >= '0' && pch[0] <= '9' && pch[1] == '\0')
 				{
 					i = atoi(pch);
-					if(i < num_processors && gpu[i] == false && i < MAX_GPU)
+					if(i < num_processors && gpu[i] == false && opt_n_threads < MAX_GPU)
 					{
 						gpu[i] = true;
 						device_map[opt_n_threads++] = i;
 					}
 					else
 					{
-						if(i >= MAX_GPU)
+						if(opt_n_threads >= MAX_GPU)
 						{
 							applog(LOG_ERR, "Only %d gpus are supported in this ccminer build.", MAX_GPU);
 							proper_exit(1);
