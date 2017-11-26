@@ -4,7 +4,8 @@ If you find this tool useful and like to support its continued development,
 then consider a donation.
 
 ## KlausT's donation address:
-' BTC/BCH: 1QHH2dibyYL5iyMDk3UN4PVvFVtrWD8QKp
+* BTC: 1QHH2dibyYL5iyMDk3UN4PVvFVtrWD8QKp
+* BCH: 1AH1u7B4KtDTUBgmT6NrXyahNEgTac3fL7
 
 ## tsiv's donation adresses:
 * BTC: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs

@@ -1,4 +1,3 @@
-
 ccminer-cryptonight, a ccminer mod by tsiv and KlausT
 -------------------------------------------------------------
 
@@ -6,7 +5,8 @@ ccminer-cryptonight, a ccminer mod by tsiv and KlausT
 If you find this tool useful and like to support its continued 
           development, then consider a donation.
 
-KlausT's BTC donation address: 1QHH2dibyYL5iyMDk3UN4PVvFVtrWD8QKp
+KlausT's BTC donation address: 1QDwdLPrPYSoPqS7pB2kGG84YX6hEcQ4JN
+KlausT's BCH donation address: 1AH1u7B4KtDTUBgmT6NrXyahNEgTac3fL7
 
 tsiv's BTC donation address: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs
 tsiv's DRK donation address: XrHp267JNTVdw5P3dsBpqYfgTpWnzoESPQ
