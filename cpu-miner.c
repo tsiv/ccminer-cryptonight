@@ -1644,7 +1644,7 @@ static void parse_arg(int key, char *arg)
 			opt_n_threads = 0;
 			while(pch != NULL)
 			{
-				if(pch[0] >= '0' && pch[0] <= '9' && pch[1] == '\0')
+				if(pch[0] >= '0' && pch[0] <= '9')
 				{
 					i = atoi(pch);
 					if(i < num_processors && gpu[i] == false && opt_n_threads < MAX_GPU)
