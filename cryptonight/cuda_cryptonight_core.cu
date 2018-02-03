@@ -16,6 +16,21 @@ extern int device_bsleep[MAX_GPU];
 
 #include "cuda_cryptonight_aes.cu"
 
+#define VARIANT1_1(p) \
+  do if (variant > 0 && sub == 2) \
+  { \
+    uint32_t tmp32 = loadGlobal32<uint32_t>(p); \
+    uint8_t tmp = tmp32 >> 24; \
+    uint8_t tmp1 = (tmp>>4)&1, tmp2 = (tmp>>5)&1, tmp3 = tmp1^tmp2; \
+    uint8_t tmp0 = nonce_flag ? tmp3 : tmp1 + 1; \
+    tmp32 &= 0x00ffffff; tmp32 |= ((tmp & 0xef) | (tmp0<<4)) << 24; \
+    storeGlobal32<uint32_t>(p, tmp32); \
+  } while(0)
+
+#define VARIANT1_2(p) VARIANT1_1(p)
+#define VARIANT1_INIT() \
+  nonce_flag ^= (thread & 1)
+
 __device__ __forceinline__ uint64_t cuda_mul128(uint64_t multiplier, uint64_t multiplicand, uint64_t* product_hi)
 {
 	*product_hi = __umul64hi(multiplier, multiplicand);
@@ -87,7 +102,7 @@ __device__ __forceinline__ void MUL_SUM_XOR_DST(uint64_t a, uint64_t *__restrict
 	dst[1] = lo;
 }
 
-__global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int partidx, uint32_t * __restrict__ d_long_state, uint32_t * __restrict__ d_ctx_a, uint32_t * __restrict__ d_ctx_b)
+__global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int partidx, uint32_t * __restrict__ d_long_state, uint32_t * __restrict__ d_ctx_a, uint32_t * __restrict__ d_ctx_b, int variant, uint8_t nonce_flag)
 {
 	__shared__ uint32_t sharedMemory[1024];
 
@@ -97,6 +112,8 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 	const int thread = (blockDim.x * blockIdx.x + threadIdx.x) >> 2;
 	if (thread >= threads)
 		return;
+
+	VARIANT1_INIT();
 
 	const int sub = threadIdx.x & 3;
 	const int sub2 = threadIdx.x & 2;
@@ -137,6 +154,7 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 			t1[0] = __shfl(d[x], 0, 4);
 			//long_state[j] = d[0] ^ d[1];
 			storeGlobal32(long_state + j, d[0] ^ d[1]);
+			VARIANT1_1(long_state + j);
 
 			//MUL_SUM_XOR_DST(c, a, &long_state[((uint32_t *)c)[0] & 0x1FFFF0]);
 			j = ((*t1 & 0x1FFFF0) >> 2) + sub;
@@ -157,6 +175,7 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 			res = *((uint64_t *)t2) >> (sub & 1 ? 32 : 0);
 
 			storeGlobal32(long_state + j, res);
+			VARIANT1_2(long_state + j);
 			a = (sub & 1 ? yy[1] : yy[0]) ^ res;
 		}
 	}
@@ -198,7 +217,7 @@ __global__ void cryptonight_core_gpu_phase3(int threads, const uint32_t * __rest
 	}
 }
 
-__host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, uint32_t *d_ctx_state, uint32_t *d_ctx_a, uint32_t *d_ctx_b, uint32_t *d_ctx_key1, uint32_t *d_ctx_key2)
+__host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, uint32_t *d_ctx_state, uint32_t *d_ctx_a, uint32_t *d_ctx_b, uint32_t *d_ctx_key1, uint32_t *d_ctx_key2, int variant, uint8_t nonce_flag)
 {
 	dim3 grid(blocks);
 	dim3 block(threads);
@@ -213,7 +232,7 @@ __host__ void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uin
 
 	for(i = 0; i < partcount; i++)
 	{
-		cryptonight_core_gpu_phase2 <<< grid, block4 >>>(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx_a, d_ctx_b);
+		cryptonight_core_gpu_phase2 <<< grid, block4 >>>(blocks*threads, device_bfactor[thr_id], i, d_long_state, d_ctx_a, d_ctx_b, variant, nonce_flag);
 		exit_if_cudaerror(thr_id, __FILE__, __LINE__);
 		if(partcount > 1) usleep(device_bsleep[thr_id]);
 	}
