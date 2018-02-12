@@ -1,8 +1,3 @@
-/* cpuminer-config.h.in.  Generated from configure.ac by autoheader.  */
-
-/* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
-   systems. This function is required for `alloca.c' support on those systems.
-   */
 #undef CRAY_STACKSEG_END
 
 /* Define to 1 if using `alloca.c'. */
@@ -152,7 +147,7 @@
 #define PACKAGE_NAME "ccminer-cryptonight"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "ccminer-cryptonight 2.06"
+#define PACKAGE_STRING "ccminer-cryptonight 3.00"
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
@@ -161,7 +156,7 @@
 #undef PACKAGE_URL
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2.06"
+#define PACKAGE_VERSION "3.00"
 
 /* Version number of package */
 #undef VERSION

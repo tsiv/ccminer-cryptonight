@@ -4,7 +4,11 @@
 
 // Modified for CPUminer by Lucas Jones
 
+#ifdef WIN32
+#include "cpuminer-config-win.h"
+#else
 #include "cpuminer-config.h"
+#endif
 #include "miner.h"
 #include "crypto/oaes_lib.h"
 #include "crypto/c_keccak.h"

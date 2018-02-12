@@ -134,9 +134,6 @@
     <ClInclude Include="compat\stdbool.h">
       <Filter>Header Files\compat</Filter>
     </ClInclude>
-    <ClInclude Include="cpuminer-config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="cuda_helper.h">
       <Filter>Header Files\CUDA</Filter>
     </ClInclude>
@@ -199,6 +196,9 @@
     </ClInclude>
     <ClInclude Include="compat\jansson\util.h">
       <Filter>Header Files\compat\jansson</Filter>
+    </ClInclude>
+    <ClInclude Include="cpuminer-config-win.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

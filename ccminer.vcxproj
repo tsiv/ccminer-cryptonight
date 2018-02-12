@@ -300,7 +300,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="compat\stdbool.h" />
     <ClInclude Include="compat\sys\time.h" />
     <ClInclude Include="compat\unistd.h" />
-    <ClInclude Include="cpuminer-config.h" />
+    <ClInclude Include="cpuminer-config-win.h" />
     <ClInclude Include="crypto\hash.h" />
     <ClInclude Include="cuda_helper.h" />
     <ClInclude Include="elist.h" />

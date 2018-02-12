@@ -9,7 +9,11 @@
 */
 
 #define _GNU_SOURCE
+#ifdef WIN32
+#include "cpuminer-config-win.h"
+#else
 #include "cpuminer-config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -7,8 +7,11 @@
 * Software Foundation; either version 2 of the License, or (at your option)
 * any later version.  See COPYING for more details.
 */
-
+#ifdef WIN32
+#include "cpuminer-config-win.h"
+#else
 #include "cpuminer-config.h"
+#endif
 #define _GNU_SOURCE
 
 #include <stdio.h>
@@ -1893,7 +1896,7 @@ static int msver(void)
 	return version;
 }
 
-#define PROGRAM_VERSION "2.06"
+#define PROGRAM_VERSION "3.00"
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;

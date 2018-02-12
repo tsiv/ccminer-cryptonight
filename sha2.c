@@ -8,7 +8,11 @@
  * any later version.  See COPYING for more details.
  */
 
+#ifdef WIN32
+#include "cpuminer-config-win.h"
+#else
 #include "cpuminer-config.h"
+#endif
 #include "miner.h"
 
 #include <string.h>

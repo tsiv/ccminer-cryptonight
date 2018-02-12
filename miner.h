@@ -5,7 +5,11 @@
 extern "C" {
 #endif
 
+#ifdef WIN32
+#include "cpuminer-config-win.h"
+#else
 #include "cpuminer-config.h"
+#endif
 
 #include <stdbool.h>
 #include <inttypes.h>

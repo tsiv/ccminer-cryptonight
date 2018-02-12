@@ -7,7 +7,11 @@
 
 extern "C"
 {
+#ifdef WIN32
+#include "cpuminer-config-win.h"
+#else
 #include "cpuminer-config.h"
+#endif
 #include "miner.h"
 }
 #include "cryptonight.h"
