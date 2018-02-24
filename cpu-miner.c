@@ -58,7 +58,7 @@ extern "C"
 }
 #endif
 
-extern void cryptonight_hash(void* output, const void* input, size_t len, int variant);
+extern int cryptonight_hash(void* output, const void* input, size_t len, int variant);
 void parse_device_config(int device, char *config, int *blocks, int *threads);
 
 #ifdef __linux /* Linux specific policy and affinity management */
@@ -638,7 +638,11 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
 		int variant = ((unsigned char*)work->data)[0] >= 7 ? ((unsigned char*)work->data)[0] - 6 : 0;
 		char hash[32];
-		cryptonight_hash((void *)hash, (const void *)work->data, 76, variant);
+		if (!cryptonight_hash((void *)hash, (const void *)work->data, 76, variant)) {
+			applog(LOG_ERR, "submit_upstream_work cryptonight_hash failed");
+			free(str);
+			return rc;
+		}
 		char *hashhex = bin2hex((const unsigned char *)hash, 32);
 		snprintf(s, sizeof(s),
 				 "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}",
@@ -659,7 +663,11 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		char *noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
 		int variant = ((unsigned char*)work->data)[0] >= 7 ? ((unsigned char*)work->data)[0] - 6 : 0;
 		char hash[32];
-		cryptonight_hash((void *)hash, (const void *)work->data, 76, variant);
+		if (!cryptonight_hash((void *)hash, (const void *)work->data, 76, variant)) {
+			applog(LOG_ERR, "submit_upstream_work cryptonight_hash failed");
+			free(str);
+			return rc;
+		}
 		char *hashhex = bin2hex((const unsigned char *)hash, 32);
 		snprintf(s, sizeof(s),
 				 "{\"method\": \"submit\", \"params\": {\"id\": \"%s\", \"job_id\": \"%s\", \"nonce\": \"%s\", \"result\": \"%s\"}, \"id\":1}",

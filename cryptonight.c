@@ -21,15 +21,18 @@
 #define VARIANT1_1(p) \
   do if (variant > 0) \
   { \
-    uint8_t tmp = ((const uint8_t*)p)[11]; \
-    uint8_t tmp1 = (tmp>>4)&1, tmp2 = (tmp>>5)&1, tmp3 = tmp1^tmp2; \
-    uint8_t tmp0 = nonce_flag ? tmp3 : tmp1 + 1; \
-    ((uint8_t*)p)[11] = (tmp & 0xef) | (tmp0<<4); \
+    const uint8_t tmp = ((const uint8_t*)(p))[11]; \
+    static const uint32_t table = 0x75310; \
+    const uint8_t index = (((tmp >> 3) & 6) | (tmp & 1)) << 1; \
+    ((uint8_t*)(p))[11] = tmp ^ ((table >> index) & 0x30); \
   } while(0)
 
-#define VARIANT1_2(p) VARIANT1_1(p)
 #define VARIANT1_INIT() \
-  const uint8_t nonce_flag = variant > 0 ? ((const uint8_t*)input)[39] & 0x01 : 0
+  if (variant > 0 && len < 43) \
+  { \
+    return 0; \
+  } \
+  const uint64_t tweak1_2 = variant > 0 ? *((const uint64_t*) (((const uint8_t*)input) + 35)) ^ ctx->state.hs.w[24] : 0
 
 struct cryptonight_ctx {
     uint8_t long_state[MEMORY];
@@ -122,14 +125,14 @@ static void mul_sum_dst(const uint8_t* a, const uint8_t* b, const uint8_t* c, ui
     ((uint64_t*) dst)[0] += ((uint64_t*) c)[0];
 }
 
-static void mul_sum_xor_dst(const uint8_t* a, uint8_t* c, uint8_t* dst) {
+static void mul_sum_xor_dst(const uint8_t* a, uint8_t* c, uint8_t* dst, const int variant, const uint64_t tweak1_2) {
     uint64_t hi, lo = mul128(((uint64_t*) a)[0], ((uint64_t*) dst)[0], &hi) + ((uint64_t*) c)[1];
     hi += ((uint64_t*) c)[0];
 
     ((uint64_t*) c)[0] = ((uint64_t*) dst)[0] ^ hi;
     ((uint64_t*) c)[1] = ((uint64_t*) dst)[1] ^ lo;
     ((uint64_t*) dst)[0] = hi;
-    ((uint64_t*) dst)[1] = lo;
+    ((uint64_t*) dst)[1] = variant > 0 ? lo ^ tweak1_2 : lo;
 }
 
 static void copy_block(uint8_t* dst, const uint8_t* src) {
@@ -147,7 +150,7 @@ static void xor_blocks_dst(const uint8_t* a, const uint8_t* b, uint8_t* dst) {
     ((uint64_t*) dst)[1] = ((uint64_t*) a)[1] ^ ((uint64_t*) b)[1];
 }
 
-void cryptonight_hash_ctx(void* output, const void* input, size_t len, struct cryptonight_ctx* ctx, int variant) {
+int cryptonight_hash_ctx(void* output, const void* input, size_t len, struct cryptonight_ctx* ctx, int variant) {
     size_t i, j;
     hash_process(&ctx->state.hs, (const uint8_t*) input, len);
     ctx->aes_ctx = (oaes_ctx*) oaes_alloc();
@@ -179,16 +182,14 @@ void cryptonight_hash_ctx(void* output, const void* input, size_t len, struct cr
         xor_blocks_dst(ctx->c, ctx->b, &ctx->long_state[j]);
         VARIANT1_1(&ctx->long_state[j]);
 
-        mul_sum_xor_dst(ctx->c, ctx->a, &ctx->long_state[e2i(ctx->c) * AES_BLOCK_SIZE]);
-        VARIANT1_2(&ctx->long_state[e2i(ctx->c) * AES_BLOCK_SIZE]);
+        mul_sum_xor_dst(ctx->c, ctx->a, &ctx->long_state[e2i(ctx->c) * AES_BLOCK_SIZE], variant, tweak1_2);
 
         j = e2i(ctx->a) * AES_BLOCK_SIZE;
         aesb_single_round(&ctx->long_state[j], ctx->b, ctx->a);
         xor_blocks_dst(ctx->b, ctx->c, &ctx->long_state[j]);
         VARIANT1_1(&ctx->long_state[j]);
 
-        mul_sum_xor_dst(ctx->b, ctx->a, &ctx->long_state[e2i(ctx->b) * AES_BLOCK_SIZE]);
-        VARIANT1_2(&ctx->long_state[e2i(ctx->b) * AES_BLOCK_SIZE]);
+        mul_sum_xor_dst(ctx->b, ctx->a, &ctx->long_state[e2i(ctx->b) * AES_BLOCK_SIZE], variant, tweak1_2);
     }
 
     memcpy(ctx->text, ctx->state.init, INIT_SIZE_BYTE);
@@ -210,10 +211,12 @@ void cryptonight_hash_ctx(void* output, const void* input, size_t len, struct cr
     hash_permutation(&ctx->state.hs);
     extra_hashes[ctx->state.hs.b[0] & 3](&ctx->state, 200, output);
     oaes_free((OAES_CTX **) &ctx->aes_ctx);
+    return 1;
 }
 
-void cryptonight_hash(void* output, const void* input, size_t len, int variant) {
+int cryptonight_hash(void* output, const void* input, size_t len, int variant) {
     struct cryptonight_ctx *ctx = (struct cryptonight_ctx*)malloc(sizeof(struct cryptonight_ctx));
-    cryptonight_hash_ctx(output, input, len, ctx, variant);
+    int rc = cryptonight_hash_ctx(output, input, len, ctx, variant);
     free(ctx);
+    return rc;
 }
