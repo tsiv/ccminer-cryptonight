@@ -1023,7 +1023,7 @@ static void *miner_thread(void *userdata)
 	unsigned char *scratchbuf = NULL;
 	int i;
 	static int rounds = 0;
-	end_nonce = 0x00ffffffU / opt_n_threads * (thr_id + 1) - 0x20;
+	end_nonce = 0x01000000U / opt_n_threads * (thr_id + 1) - 1;
 	memset(&work, 0, sizeof(work)); // prevent work from being used uninitialized
 
 	/* Set worker threads to nice 19 and then preferentially to SCHED_IDLE
@@ -1094,8 +1094,8 @@ static void *miner_thread(void *userdata)
 			if(opt_debug)
 				applog(LOG_DEBUG, "GPU #%d: %s, got new work", device_map[thr_id], device_name[thr_id]);
 			memcpy(&work, &g_work, sizeof(struct work));
-			end_nonce = *nonceptr + 0x00ffffffU / opt_n_threads * (thr_id + 1) - 0x20;
-			*nonceptr += 0x00ffffffU / opt_n_threads * thr_id;
+			end_nonce = 0x01000000U / opt_n_threads * (thr_id + 1) - 1 + *nonceptr;
+			*nonceptr += 0x01000000U / opt_n_threads * thr_id;
 		}
 		else
 		{
