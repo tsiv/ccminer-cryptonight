@@ -123,6 +123,9 @@ struct workio_cmd
 bool stop_mining = false;
 volatile bool mining_has_stopped[8] = {false};
 bool opt_colors = false;
+#ifdef WIN32
+HANDLE handl;
+#endif
 bool opt_debug = false;
 bool opt_protocol = false;
 bool opt_keepalive = false;
@@ -1774,6 +1777,10 @@ static void parse_arg(int key, char *arg)
 			break;
 		case 1010:
 			opt_colors = true;
+#if defined WIN32 && defined ENABLE_VIRTUAL_TERMINAL_PROCESSING
+			handl = GetStdHandle(STD_ERROR_HANDLE);
+			SetConsoleMode(handl, ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT);
+#endif
 			break;
 
 		case 'V':
