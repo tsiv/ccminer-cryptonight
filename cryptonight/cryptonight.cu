@@ -21,6 +21,7 @@ extern int device_arch[MAX_GPU][2];
 extern int device_mpcount[MAX_GPU];
 extern int device_map[MAX_GPU];
 extern int device_config[MAX_GPU][2];
+extern algo_t opt_algo;
 
 //Number of CUDA Devices on the system
 extern "C" int cuda_num_devices()
@@ -185,11 +186,12 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 	cudaError_t err;
 	int res;
 	uint32_t *nonceptr = (uint32_t*)(((char*)pdata) + 39);
-	int variant = ((uint8_t*)pdata)[0] >= 7 ? ((uint8_t*)pdata)[0] - 6 : 0;
+	int variant = 0;
 	const uint32_t first_nonce = *nonceptr;
 	uint32_t nonce = *nonceptr;
 	int cn_blocks = device_config[thr_id][0];
 	int cn_threads = device_config[thr_id][1];
+
 	if(opt_benchmark)
 	{
 		((uint32_t*)ptarget)[7] = 0x0000ff;
@@ -208,6 +210,8 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 	static bool init[MAX_GPU] = {false, false, false, false, false, false, false, false};
 	if(!init[thr_id])
 	{
+		if (opt_algo == algo_monero)
+			variant = ((uint8_t*)pdata)[0] >= 7 ? ((uint8_t*)pdata)[0] - 6 : 0;
 		err = cudaSetDevice(device_map[thr_id]);
 		if(err != cudaSuccess)
 		{

@@ -126,6 +126,8 @@ bool opt_colors = false;
 #ifdef WIN32
 HANDLE handl;
 #endif
+
+algo_t opt_algo = algo_monero;
 bool opt_debug = false;
 bool opt_protocol = false;
 bool opt_keepalive = false;
@@ -206,9 +208,18 @@ struct option
 };
 #endif
 
+const char *algo_names[] =
+{
+	"cryptonight",
+	"monero"
+};
+
 static char const usage[] = "\
 Usage: " PROGRAM_NAME " [OPTIONS]\n\
 	Options:\n\
+        -a  --algo              choose between the supported algos:\n\
+                                  cryptonight\n\
+                                  monero\n\
 		-d, --devices			takes a comma separated list of CUDA devices to use.\n\
 								Device IDs start counting from 0! Alternatively takes\n\
 								string names of your cards like gtx780ti or gt640#2\n\
@@ -271,9 +282,10 @@ static char const short_options[] =
 #ifdef HAVE_SYSLOG_H
 "S"
 #endif
-"Bc:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:l:";
+"a:Bc:Dhp:Px:kqr:R:s:t:T:o:u:O:Vd:f:l:";
 
 static struct option const options[] = {
+	{"algo", 1, NULL, 'a' },
 	{"background", 0, NULL, 'B'},
 	{"benchmark", 0, NULL, 1005},
 	{"cert", 1, NULL, 1001},
@@ -633,13 +645,14 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 			applog(LOG_DEBUG, "DEBUG: stale work detected, discarding");
 		return true;
 	}
-
+	int variant = 0;
 	if(have_stratum)
 	{
 		char *noncestr;
 
 		noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
-		int variant = ((unsigned char*)work->data)[0] >= 7 ? ((unsigned char*)work->data)[0] - 6 : 0;
+		if(opt_algo == algo_monero)
+			variant = ((unsigned char*)work->data)[0] >= 7 ? ((unsigned char*)work->data)[0] - 6 : 0;
 		char hash[32];
 		if (!cryptonight_hash((void *)hash, (const void *)work->data, 76, variant)) {
 			applog(LOG_ERR, "submit_upstream_work cryptonight_hash failed");
@@ -664,7 +677,8 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 	{
 		/* build JSON-RPC request */
 		char *noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
-		int variant = ((unsigned char*)work->data)[0] >= 7 ? ((unsigned char*)work->data)[0] - 6 : 0;
+		if (opt_algo == algo_monero)
+			variant = ((unsigned char*)work->data)[0] >= 7 ? ((unsigned char*)work->data)[0] - 6 : 0;
 		char hash[32];
 		if (!cryptonight_hash((void *)hash, (const void *)work->data, 76, variant)) {
 			applog(LOG_ERR, "submit_upstream_work cryptonight_hash failed");
@@ -1488,6 +1502,16 @@ static void parse_arg(int key, char *arg)
 
 	switch(key)
 	{
+		case 'a':
+			for (i = 0; i < ARRAY_SIZE(algo_names); i++)
+			{
+				if (algo_names[i] && !strcasecmp(arg, algo_names[i]))
+				{
+					opt_algo = (algo_t)i;
+					break;
+				}
+			}
+			break;
 		case 'B':
 			opt_background = true;
 			break;
