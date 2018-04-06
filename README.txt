@@ -5,8 +5,10 @@ ccminer-cryptonight, a ccminer mod by tsiv and KlausT
 If you find this tool useful and like to support its continued 
           development, then consider a donation.
 
-KlausT's BTC donation address: 1QDwdLPrPYSoPqS7pB2kGG84YX6hEcQ4JN
-KlausT's BCH donation address: 1AH1u7B4KtDTUBgmT6NrXyahNEgTac3fL7
+KlausT's BTC donation addresses: 1QDwdLPrPYSoPqS7pB2kGG84YX6hEcQ4JN
+                                 bc1qpt7qnvjaqu8t24xqajgyfqan2v00hrdgrut0zq
+KlausT's BCH donation addresses: 1AH1u7B4KtDTUBgmT6NrXyahNEgTac3fL7
+                                 qpjupzv3nevqzlkyxx5d736xt78jvet7usm479kl73
 
 tsiv's BTC donation address: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs
 tsiv's XMR donation address: 42uasNqYPnSaG3TwRtTeVbQ4aRY3n9jY6VXX3mfgerWt4ohDQLVaBPv3cYGKDXasTUVuLvhxetcuS16ynt85czQ48mbSrWX
@@ -31,6 +33,11 @@ This code is based on the main ccminer branch, that in turn
 is based on the pooler cpuminer 2.3.2 release and inherits
 most of their command line interface and options.
 
+ -a  --algo            choose between the supported algos:
+                          cryptonight (the old version)
+                          monero      (v7)
+                          graft       (v8)
+                          stellite    (v3)
  -d, --devices         gives a comma separated list of CUDA device IDs
                        to operate on. Device IDs start counting from 0!
                        Alternatively give string names of your card like
