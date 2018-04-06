@@ -325,7 +325,9 @@ extern void tq_thaw(struct thread_q *tq);
 
 enum algo_t
 {
-	algo_cryptonight,
-	algo_monero
+	algo_old,
+	algo_monero,
+	algo_graft,
+	algo_stellite
 };
 #endif /* __MINER_H__ */

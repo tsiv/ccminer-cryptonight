@@ -128,6 +128,7 @@ HANDLE handl;
 #endif
 
 algo_t opt_algo = algo_monero;
+int forkversion = 7;
 bool opt_debug = false;
 bool opt_protocol = false;
 bool opt_keepalive = false;
@@ -211,7 +212,9 @@ struct option
 const char *algo_names[] =
 {
 	"cryptonight",
-	"monero"
+	"monero",
+	"graft",
+	"stellite"
 };
 
 static char const usage[] = "\
@@ -220,6 +223,8 @@ Usage: " PROGRAM_NAME " [OPTIONS]\n\
         -a  --algo              choose between the supported algos:\n\
                                   cryptonight\n\
                                   monero\n\
+                                  graft\n\
+                                  stellite\n\
 		-d, --devices			takes a comma separated list of CUDA devices to use.\n\
 								Device IDs start counting from 0! Alternatively takes\n\
 								string names of your cards like gtx780ti or gt640#2\n\
@@ -651,8 +656,8 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		char *noncestr;
 
 		noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
-		if(opt_algo == algo_monero)
-			variant = ((unsigned char*)work->data)[0] >= 7 ? ((unsigned char*)work->data)[0] - 6 : 0;
+		if(opt_algo != algo_old)
+			variant = ((unsigned char*)work->data)[0] >= forkversion ? ((unsigned char*)work->data)[0] - forkversion + 1 : 0;
 		char hash[32];
 		if (!cryptonight_hash((void *)hash, (const void *)work->data, 76, variant)) {
 			applog(LOG_ERR, "submit_upstream_work cryptonight_hash failed");
@@ -677,8 +682,8 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 	{
 		/* build JSON-RPC request */
 		char *noncestr = bin2hex(((const unsigned char*)work->data) + 39, 4);
-		if (opt_algo == algo_monero)
-			variant = ((unsigned char*)work->data)[0] >= 7 ? ((unsigned char*)work->data)[0] - 6 : 0;
+		if (opt_algo != algo_old)
+			variant = ((unsigned char*)work->data)[0] >= forkversion ? ((unsigned char*)work->data)[0] - forkversion + 1 : 0;
 		char hash[32];
 		if (!cryptonight_hash((void *)hash, (const void *)work->data, 76, variant)) {
 			applog(LOG_ERR, "submit_upstream_work cryptonight_hash failed");
@@ -1511,6 +1516,12 @@ static void parse_arg(int key, char *arg)
 					break;
 				}
 			}
+			if (opt_algo == algo_monero)
+				forkversion = 7;
+			if (opt_algo == algo_graft)
+				forkversion = 8;
+			if (opt_algo == algo_stellite)
+				forkversion = 3;
 			break;
 		case 'B':
 			opt_background = true;
