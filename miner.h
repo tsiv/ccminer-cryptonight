@@ -323,11 +323,11 @@ extern void tq_thaw(struct thread_q *tq);
 }
 #endif
 
-enum algo_t
+typedef enum __algo_t
 {
 	algo_old,
 	algo_monero,
 	algo_graft,
 	algo_stellite
-};
+} algo_t;
 #endif /* __MINER_H__ */
