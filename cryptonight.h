@@ -17,7 +17,7 @@ struct uint3  blockDim;
 #define __funnelshift_r(a,b,c) 1
 #define __syncthreads()
 #define asm(x)
-#define __shfl(a,b,c) 1
+#define SHFL(a,b,c) 1
 #define __umul64hi(x, y) (x*y)
 #endif
 

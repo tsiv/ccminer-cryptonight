@@ -14,6 +14,14 @@ extern int device_arch[MAX_GPU][2];
 extern int device_bfactor[MAX_GPU];
 extern int device_bsleep[MAX_GPU];
 
+#if !defined SHFL
+#if CUDART_VERSION >= 9010
+#define SHFL(x, y, z) __shfl_sync(0xffffffff, (x), (y), (z))
+#else
+#define SHFL(x, y, z) __shfl((x), (y), (z))
+#endif
+#endif
+
 #include "cuda_cryptonight_aes.cu"
 
 __device__ __forceinline__ uint64_t cuda_mul128(uint64_t multiplier, uint64_t multiplicand, uint64_t* product_hi)
@@ -135,12 +143,12 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 #pragma unroll 2
 		for (int x = 0; x < 2; ++x)
 		{
-			j = ((__shfl(a, 0, 4) & 0x1FFFF0) >> 2) + sub;
+			j = ((SHFL(a, 0, 4) & 0x1FFFF0) >> 2) + sub;
 
 			const uint32_t x_0 = loadGlobal32<uint32_t>(long_state + j);
-			const uint32_t x_1 = __shfl(x_0, sub + 1, 4);
-			const uint32_t x_2 = __shfl(x_0, sub + 2, 4);
-			const uint32_t x_3 = __shfl(x_0, sub + 3, 4);
+			const uint32_t x_1 = SHFL(x_0, sub + 1, 4);
+			const uint32_t x_2 = SHFL(x_0, sub + 2, 4);
+			const uint32_t x_3 = SHFL(x_0, sub + 3, 4);
 			d[x] = a ^
 				t_fn0(x_0 & 0xff) ^
 				t_fn1((x_1 >> 8) & 0xff) ^
@@ -149,7 +157,7 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 
 
 			//XOR_BLOCKS_DST(c, b, &long_state[j]);
-			t1[0] = __shfl(d[x], 0, 4);
+			t1[0] = SHFL(d[x], 0, 4);
 			//long_state[j] = d[0] ^ d[1];
 			const uint32_t z = d[0] ^ d[1];
 			storeGlobal32(long_state + j, (variant > 0 && sub == 2) ? variant1_1(z) : z);
@@ -160,13 +168,13 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 			uint32_t yy[2];
 			*((uint64_t*)yy) = loadGlobal64<uint64_t>(((uint64_t *)long_state) + (j >> 1));
 			uint32_t zz[2];
-			zz[0] = __shfl(yy[0], 0, 4);
-			zz[1] = __shfl(yy[1], 0, 4);
+			zz[0] = SHFL(yy[0], 0, 4);
+			zz[1] = SHFL(yy[1], 0, 4);
 
-			t1[1] = __shfl(d[x], 1, 4);
+			t1[1] = SHFL(d[x], 1, 4);
 #pragma unroll
 			for (k = 0; k < 2; k++)
-				t2[k] = __shfl(a, k + sub2, 4);
+				t2[k] = SHFL(a, k + sub2, 4);
 
 			*((uint64_t *)t2) += sub2 ? (*((uint64_t *)t1) * *((uint64_t*)zz)) : __umul64hi(*((uint64_t *)t1), *((uint64_t*)zz));
 
