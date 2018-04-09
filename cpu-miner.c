@@ -1067,11 +1067,11 @@ static void *miner_thread(void *userdata)
 		affine_to_cpu(thr_id, thr_id % num_processors);
 	}
 
-	applog(LOG_INFO, "GPU #%d: %s (%d SMX), using %d blocks of %d threads",
-				 device_map[thr_id], device_name[thr_id], device_mpcount[thr_id], device_config[thr_id][0], device_config[thr_id][1]);
+	applog(LOG_INFO, "GPU #%d: %s (%d SMX), using launch config %dx%d",
+				 device_map[thr_id], device_name[thr_id], device_mpcount[thr_id], device_config[thr_id][1], device_config[thr_id][0]);
 
 	if(device_config[thr_id][0] % device_mpcount[thr_id])
-		applog(LOG_INFO, "GPU #%d: Warning: block count %d is not a multiple of SMX count %d.",
+		applog(LOG_WARNING, "GPU #%d: Warning: block count %d is not a multiple of SMX count %d.",
 		device_map[thr_id], device_config[thr_id][0], device_mpcount[thr_id]);
 
 	uint32_t *const nonceptr = (uint32_t*)(((char*)work.data) + 39);
