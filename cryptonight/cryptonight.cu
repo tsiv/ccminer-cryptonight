@@ -96,7 +96,7 @@ extern "C" void cuda_set_device_config(int GPU_N)
 				while (device_config[i][0] > device_mpcount[i])
 				{
 
-					if (freeMemory > size_t(device_config[i][0]) * size_t(device_config[i][1]) * 2097832)
+					if (freeMemory > size_t(device_config[i][0]) * size_t(device_config[i][1]) * 2097932)
 					{
 						break;
 					}
