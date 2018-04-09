@@ -78,3 +78,4 @@ missing
 stamp-h1
 compat/Makefile.in
 cpuminer-config.h
+/.vs
