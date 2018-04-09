@@ -23,6 +23,7 @@ extern int device_map[MAX_GPU];
 extern int device_config[MAX_GPU][2];
 extern algo_t opt_algo;
 extern int forkversion;
+extern void proper_exit(int exitcode);
 
 //Number of CUDA Devices on the system
 extern "C" int cuda_num_devices()
@@ -55,53 +56,60 @@ extern "C" int cuda_num_devices()
 }
 extern "C" void cuda_set_device_config(int GPU_N)
 {
-	for(int i = 0; i < GPU_N; i++)
+	for (int i = 0; i < GPU_N; i++)
 	{
-		if(device_config[i][0] == 0)
+		cudaError_t err;
+
+		err = cudaSetDevice(device_map[i]);
+		if (err != cudaSuccess)
+		{
+			applog(LOG_ERR, "GPU %d: %s", device_map[i], cudaGetErrorString(err));
+			exit(EXIT_FAILURE);
+		}
+		err = cudaDeviceReset();
+		if (err != cudaSuccess)
+		{
+			applog(LOG_ERR, "GPU %d: %s", device_map[i], cudaGetErrorString(err));
+			exit(EXIT_FAILURE);
+		}
+		if (device_config[i][0] == 0)
 		{
 			device_config[i][0] = device_mpcount[i] * 4;
-			device_config[i][1] = 64;
+			device_config[i][1] = 32;
 
-			/* sm_20 devices can only run 512 threads per cuda block
-			* `cryptonight_core_gpu_phase1` and `cryptonight_core_gpu_phase3` starts
-			* `8 * ctx->device_threads` threads per block
-			*/
-			if(device_arch[i][0] < 6)
+			if (device_arch[i][0] < 6)
 			{
 				//Try to stay under 950 threads ( 1900MiB memory per for hashes )
-				while(device_config[i][0] * device_config[i][1] >= 950 && device_config[i][1] > 2)
+				while (device_config[i][0] * device_config[i][1] >= 950 && device_config[i][0] > device_mpcount[i])
 				{
-					device_config[i][1] /= 2;
+					device_config[i][0] -= device_mpcount[i];
 				}
 			}
 			//Stay within 85% of the available RAM
-			while(device_config[i][1] > 2)
+			size_t freeMemory = 0;
+			size_t totalMemoery = 0;
+
+			err = cudaMemGetInfo(&freeMemory, &totalMemoery);
+			if (err == cudaSuccess)
 			{
-				size_t freeMemory = 0;
-				size_t totalMemoery = 0;
-
-				cudaError_t err = cudaSetDevice(device_map[i]);
-				if(err != cudaSuccess)
+				freeMemory = (freeMemory * size_t(85)) / 100;
+				while (device_config[i][0] > device_mpcount[i])
 				{
-					applog(LOG_ERR, "GPU %d: %s", device_map[i], cudaGetErrorString(err));
-					exit(EXIT_FAILURE);
-				}
-				err = cudaMemGetInfo(&freeMemory, &totalMemoery);
-				if(err == cudaSuccess)
-				{
-					freeMemory = (freeMemory * size_t(85)) / 100;
 
-					if(freeMemory > size_t(device_config[i][0]) * size_t(device_config[i][1]) * 2097832)
+					if (freeMemory > size_t(device_config[i][0]) * size_t(device_config[i][1]) * 2097832)
 					{
 						break;
 					}
 					else
 					{
-						device_config[i][1] /= 2;
+						device_config[i][0] -= device_mpcount[i];
 					}
 				}
-				else
-					applog(LOG_ERR, "GPU #%d: CUDA error: %s", device_map[i], cudaGetErrorString(err));
+			}
+			else
+			{
+				applog(LOG_ERR, "GPU #%d: CUDA error: %s", device_map[i], cudaGetErrorString(err));
+				exit(1);
 			}
 		}
 	}
