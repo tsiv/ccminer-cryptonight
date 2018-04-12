@@ -1,9 +1,21 @@
-
-It is advised to run ./autogen.sh before./configure (autoconf and automake
+It is advised to run ./autogen.sh before ./configure (autoconf and automake
 need to be installed on your system for autogen.sh to work)
 
 ./configure has an option named --with-cuda that allows you to specify
 where your CUDA 5.5 toolkit is installed (usually /usr/local/cuda-5.5,
-but some distros may have a different default location)
+but some distros may have a different default location).
 
-See README.txt
+On Ubuntu Xenial (16 LTS), here's the rough installation process using cuda 9.0:
+
+# wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_9.1.85-1_amd64.deb
+# sudo dpkg -i cuda-repo-ubuntu1604_9.1.85-1_amd64.deb
+# sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub
+# sudo apt-get update
+# sudo apt install build-essential automake pkg-config libssl-dev libcurl4-openssl-dev cuda-9-0 nvidia-opencl-dev nvidia-cuda-toolkit
+
+For cuda-9-1, you also need the cuda-nvcc-9-1 package.
+
+# ./autogen.sh
+# ./configure --with-cuda=/usr/local/cuda
+# make clean
+# make
