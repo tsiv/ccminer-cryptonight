@@ -328,6 +328,7 @@ typedef enum __algo_t
 	algo_old,
 	algo_monero,
 	algo_graft,
-	algo_stellite
+	algo_stellite,
+	algo_intense
 } algo_t;
 #endif /* __MINER_H__ */
