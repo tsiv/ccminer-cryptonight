@@ -214,7 +214,8 @@ const char *algo_names[] =
 	"cryptonight",
 	"monero",
 	"graft",
-	"stellite"
+	"stellite",
+	"intense"
 };
 
 static char const usage[] = "\
@@ -225,6 +226,7 @@ Usage: " PROGRAM_NAME " [OPTIONS]\n\
                                   monero\n\
                                   graft\n\
                                   stellite\n\
+                                  intense\n\
         -d, --devices           takes a comma separated list of CUDA devices to use.\n\
                                 Device IDs start counting from 0! Alternatively takes\n\
                                 string names of your cards like gtx780ti or gt640#2\n\
@@ -1041,7 +1043,7 @@ static void *miner_thread(void *userdata)
 	struct work work;
 	uint32_t max_nonce;
 	uint32_t end_nonce;
-	
+
 	unsigned char *scratchbuf = NULL;
 	int i;
 	static int rounds = 0;
@@ -1522,6 +1524,8 @@ static void parse_arg(int key, char *arg)
 				forkversion = 8;
 			if (opt_algo == algo_stellite)
 				forkversion = 3;
+			if (opt_algo == algo_intense)
+				forkversion = 4;
 			break;
 		case 'B':
 			opt_background = true;
@@ -1544,7 +1548,7 @@ static void parse_arg(int key, char *arg)
 		}
 		case 'k':
 			opt_keepalive = true ;
-			applog(LOG_INFO, "Keepalive actived"); 
+			applog(LOG_INFO, "Keepalive actived");
 			break;
 		case 'q':
 			opt_quiet = true;
@@ -1983,7 +1987,7 @@ int main(int argc, char *argv[])
 
 	rpc_user = strdup("");
 	rpc_pass = strdup("");
-	
+
 	pthread_mutex_init(&applog_lock, NULL);
 	num_processors = cuda_num_devices();
 	if(num_processors == 0)
@@ -2054,7 +2058,7 @@ int main(int argc, char *argv[])
 		signal(SIGINT, signal_handler);
 		signal(SIGTERM, signal_handler);
 	}
-	signal(SIGINT, signal_handler); 
+	signal(SIGINT, signal_handler);
 #else
 	if(opt_background)
 		applog(LOG_WARNING, "option -B is not supported under Windows");
