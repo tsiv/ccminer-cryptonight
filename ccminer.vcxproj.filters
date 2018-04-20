@@ -45,39 +45,6 @@
     <ClCompile Include="compat\gettimeofday.c">
       <Filter>Source Files\gettimeofday</Filter>
     </ClCompile>
-    <ClCompile Include="cpu-miner.c">
-      <Filter>Source Files\code</Filter>
-    </ClCompile>
-    <ClCompile Include="util.c">
-      <Filter>Source Files\code</Filter>
-    </ClCompile>
-    <ClCompile Include="sha2.c">
-      <Filter>Source Files\code</Filter>
-    </ClCompile>
-    <ClCompile Include="crypto\aesb.c">
-      <Filter>Source Files\code</Filter>
-    </ClCompile>
-    <ClCompile Include="crypto\c_blake256.c">
-      <Filter>Source Files\code</Filter>
-    </ClCompile>
-    <ClCompile Include="crypto\c_groestl.c">
-      <Filter>Source Files\code</Filter>
-    </ClCompile>
-    <ClCompile Include="crypto\c_jh.c">
-      <Filter>Source Files\code</Filter>
-    </ClCompile>
-    <ClCompile Include="crypto\c_keccak.c">
-      <Filter>Source Files\code</Filter>
-    </ClCompile>
-    <ClCompile Include="crypto\c_skein.c">
-      <Filter>Source Files\code</Filter>
-    </ClCompile>
-    <ClCompile Include="cryptonight.c">
-      <Filter>Source Files\code</Filter>
-    </ClCompile>
-    <ClCompile Include="crypto\oaes_lib.c">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="compat\jansson\dump.c">
       <Filter>Source Files\jansson</Filter>
     </ClCompile>
@@ -108,6 +75,39 @@
     <ClCompile Include="compat\jansson\value.c">
       <Filter>Source Files\jansson</Filter>
     </ClCompile>
+    <ClCompile Include="cpu-miner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cryptonight-cpu.cpp">
+      <Filter>Source Files\code</Filter>
+    </ClCompile>
+    <ClCompile Include="sha2.cpp">
+      <Filter>Source Files\code</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto\c_skein.cpp">
+      <Filter>Source Files\code</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto\c_keccak.cpp">
+      <Filter>Source Files\code</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto\c_jh.cpp">
+      <Filter>Source Files\code</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto\c_groestl.cpp">
+      <Filter>Source Files\code</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto\c_blake256.cpp">
+      <Filter>Source Files\code</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto\aesb.cpp">
+      <Filter>Source Files\code</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto\oaes_lib.cpp">
+      <Filter>Source Files\code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compat.h">
@@ -133,9 +133,6 @@
     </ClInclude>
     <ClInclude Include="compat\stdbool.h">
       <Filter>Header Files\compat</Filter>
-    </ClInclude>
-    <ClInclude Include="cuda_helper.h">
-      <Filter>Header Files\CUDA</Filter>
     </ClInclude>
     <ClInclude Include="crypto\c_blake256.h">
       <Filter>Header Files</Filter>

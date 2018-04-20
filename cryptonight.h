@@ -1,4 +1,13 @@
 #pragma once
+#ifdef WIN32
+#include "cpuminer-config-win.h"
+#else
+#include "cpuminer-config.h"
+#endif
+
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdint.h>
 #include "miner.h"
 #include <cuda_runtime.h>
 
@@ -21,8 +30,6 @@ struct uint3  blockDim;
 #define __umul64hi(x, y) (x*y)
 #endif
 
-#define MEMORY         (1ULL << 21) // 2 MiB / 2097152 B
-#define ITER           (1 << 20) // 1048576
 #define AES_BLOCK_SIZE  16
 #define AES_KEY_SIZE    32
 #define INIT_SIZE_BLK   8
@@ -145,23 +152,5 @@ struct cryptonight_gpu_ctx {
 };
 */
 
-extern int device_map[MAX_GPU];
-static inline void exit_if_cudaerror(int thr_id, const char *file, int line)
-{
-	cudaError_t err = cudaGetLastError();
-	if(err != cudaSuccess)
-	{
-		printf("\nGPU %d: %s\n%s line %d\n", device_map[thr_id], cudaGetErrorString(err), file, line);
-		exit(1);
-	}
-}
-
 void hash_permutation(union hash_state *state);
 void hash_process(union hash_state *state, const uint8_t *buf, size_t count);
-
-void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, uint32_t *d_ctx_state, uint32_t *d_ctx_a, uint32_t *d_ctx_b, uint32_t *d_ctx_key1, uint32_t *d_ctx_key2, int variant, uint32_t *d_ctx_tweak1_2);
-
-void cryptonight_extra_cpu_setData(int thr_id, const void *data, const void *pTargetIn);
-void cryptonight_extra_cpu_init(int thr_id);
-void cryptonight_extra_cpu_prepare(int thr_id, int threads, uint32_t startNonce, uint32_t *d_ctx_state, uint32_t *d_ctx_a, uint32_t *d_ctx_b, uint32_t *d_ctx_key1, uint32_t *d_ctx_key2, int variant, uint32_t *d_ctx_tweak1_2);
-void cryptonight_extra_cpu_final(int thr_id, int threads, uint32_t startNonce, uint32_t *nonce, uint32_t *d_ctx_state);

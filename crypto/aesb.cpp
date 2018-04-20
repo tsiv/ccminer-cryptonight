@@ -20,11 +20,6 @@ Issue Date: 20/12/2007
 
 #include <stdint.h>
 
-#if defined(__cplusplus)
-extern "C"
-{
-#endif
-
 #define TABLE_ALIGN     32
 #define WPOLY           0x011b
 #define N_COLS          4
@@ -164,7 +159,3 @@ void aesb_pseudo_round_mut(uint8_t *val, uint8_t *expandedKey)
     round(((uint32_t*) val), b1, ((const uint32_t *) expandedKey) + 9 * N_COLS);
 }
 
-
-#if defined(__cplusplus)
-}
-#endif

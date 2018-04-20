@@ -126,7 +126,7 @@ __global__ void cryptonight_core_gpu_phase2(uint32_t threads, int bfactor, int p
 
 	int i, k;
 	uint32_t j;
-	const int batchsize = ITER >> (2 + bfactor);
+	const int batchsize = 1<<20 >> (2 + bfactor);
 	const int start = partidx * batchsize;
 	const int end = start + batchsize;
 	uint32_t * long_state = &d_long_state[thread << 19];

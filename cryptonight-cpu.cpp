@@ -9,7 +9,6 @@
 #else
 #include "cpuminer-config.h"
 #endif
-#include "miner.h"
 #include "crypto/oaes_lib.h"
 #include "crypto/c_keccak.h"
 #include "crypto/c_groestl.h"
@@ -17,6 +16,9 @@
 #include "crypto/c_jh.h"
 #include "crypto/c_skein.h"
 #include "cryptonight.h"
+
+uint64_t MEMORY = 1ULL << 21; // 2 MiB / 2097152 B
+uint32_t ITER = 1 << 20; // 1048576
 
 #define VARIANT1_1(p) \
   do if (variant > 0) \
@@ -35,7 +37,7 @@
   const uint64_t tweak1_2 = variant > 0 ? *((const uint64_t*) (((const uint8_t*)input) + 35)) ^ ctx->state.hs.w[24] : 0
 
 struct cryptonight_ctx {
-    uint8_t long_state[MEMORY];
+    uint8_t *long_state;
     union cn_slow_hash_state state;
     uint8_t text[INIT_SIZE_BYTE];
     uint8_t a[AES_BLOCK_SIZE];
@@ -45,19 +47,19 @@ struct cryptonight_ctx {
 };
 
 static void do_blake_hash(const void* input, size_t len, char* output) {
-    blake256_hash((uint8_t*)output, input, len);
+    blake256_hash((uint8_t*)output, (const uint8_t*)input, len);
 }
 
 void do_groestl_hash(const void* input, size_t len, char* output) {
-    groestl(input, len * 8, (uint8_t*)output);
+    groestl((const BitSequence*)input, len * 8, (uint8_t*)output);
 }
 
 static void do_jh_hash(const void* input, size_t len, char* output) {
-    int r = jh_hash(HASH_SIZE * 8, input, 8 * len, (uint8_t*)output);
+    int r = jh_hash(HASH_SIZE * 8, (const BitSequence*)input, 8 * len, (uint8_t*)output);
 }
 
 static void do_skein_hash(const void* input, size_t len, char* output) {
-    int r = skein_hash(8 * HASH_SIZE, input, 8 * len, (uint8_t*)output);
+    int r = skein_hash(8 * HASH_SIZE, (const SkeinBitSequence*)input, 8 * len, (uint8_t*)output);
 }
 
 void hash_permutation(union hash_state *state) {
@@ -68,10 +70,8 @@ void hash_process(union hash_state *state, const uint8_t *buf, size_t count) {
   keccak1600(buf, (int)count, (uint8_t*)state);
 }
 
-extern int fast_aesb_single_round(const uint8_t *in, uint8_t*out, const uint8_t *expandedKey);
-extern int aesb_single_round(const uint8_t *in, uint8_t*out, const uint8_t *expandedKey);
-extern int aesb_pseudo_round_mut(uint8_t *val, uint8_t *expandedKey);
-extern int fast_aesb_pseudo_round_mut(uint8_t *val, uint8_t *expandedKey);
+extern void aesb_single_round(const uint8_t *in, uint8_t*out, uint8_t *expandedKey);
+extern void aesb_pseudo_round_mut(uint8_t *val, uint8_t *expandedKey);
 
 static void (* const extra_hashes[4])(const void *, size_t, char *) = {
         do_blake_hash, do_groestl_hash, do_jh_hash, do_skein_hash
@@ -209,14 +209,27 @@ int cryptonight_hash_ctx(void* output, const void* input, size_t len, struct cry
     }
     memcpy(ctx->state.init, ctx->text, INIT_SIZE_BYTE);
     hash_permutation(&ctx->state.hs);
-    extra_hashes[ctx->state.hs.b[0] & 3](&ctx->state, 200, output);
+    extra_hashes[ctx->state.hs.b[0] & 3](&ctx->state, 200, (char *)output);
     oaes_free((OAES_CTX **) &ctx->aes_ctx);
     return 1;
 }
 
+extern void proper_exit(int);
+
 int cryptonight_hash(void* output, const void* input, size_t len, int variant) {
     struct cryptonight_ctx *ctx = (struct cryptonight_ctx*)malloc(sizeof(struct cryptonight_ctx));
-    int rc = cryptonight_hash_ctx(output, input, len, ctx, variant);
+	if (ctx == NULL)
+	{
+		applog(LOG_ERR, "file %s line %d: Out of memory!", __FILE__, __LINE__);
+		proper_exit(1);
+	}
+	ctx->long_state = (uint8_t*)malloc(MEMORY);
+	if (ctx->long_state == NULL)
+	{
+		applog(LOG_ERR, "file %s line %d: Out of memory!", __FILE__, __LINE__);
+		proper_exit(1);
+	}
+	int rc = cryptonight_hash_ctx(output, input, len, ctx, variant);
     free(ctx);
     return rc;
 }

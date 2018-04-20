@@ -1,17 +1,12 @@
 #ifndef __MINER_H__
 #define __MINER_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef WIN32
 #include "cpuminer-config-win.h"
 #else
 #include "cpuminer-config.h"
 #endif
 
-#include <stdbool.h>
 #include <inttypes.h>
 #include <sys/time.h>
 #include <pthread.h>
@@ -45,10 +40,7 @@ typedef SSIZE_T ssize_t;
 #  include <malloc.h>
 #  define alloca _alloca
 # elif !defined HAVE_ALLOCA
-#  ifdef  __cplusplus
-extern "C"
-#  endif
-void *alloca (size_t);
+   void *alloca (size_t);
 # endif
 #endif
 
@@ -249,6 +241,7 @@ extern int timeval_subtract(struct timeval *result, struct timeval *x,
 	struct timeval *y);
 extern bool fulltest(const uint32_t *hash, const uint32_t *target);
 extern void diff_to_target(uint32_t *target, double diff);
+void exit_if_cudaerror(int thr_id, const char *file, int line);
 
 struct work {
 	uint32_t data[32];
@@ -319,16 +312,13 @@ extern void *tq_pop(struct thread_q *tq, const struct timespec *abstime);
 extern void tq_freeze(struct thread_q *tq);
 extern void tq_thaw(struct thread_q *tq);
 
-#ifdef __cplusplus
-}
-#endif
-
 typedef enum __algo_t
 {
 	algo_old,
 	algo_monero,
 	algo_graft,
 	algo_stellite,
-	algo_intense
+	algo_intense,
+	algo_sumokoin
 } algo_t;
 #endif /* __MINER_H__ */

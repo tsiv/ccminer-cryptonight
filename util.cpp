@@ -20,7 +20,6 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <string.h>
-#include <stdbool.h>
 #include <inttypes.h>
 #include <unistd.h>
 #include <jansson.h>

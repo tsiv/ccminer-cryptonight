@@ -617,7 +617,7 @@ static OAES_RET oaes_key_gen( OAES_CTX * ctx, size_t key_size )
 #endif // OAES_HAVE_ISAAC
 
 	_ctx->key = _key;
-	_rc = _rc || oaes_key_expand( ctx );
+	_rc = (OAES_RET)oaes_key_expand( ctx );
 
 	if( _rc != OAES_RET_SUCCESS )
 	{
@@ -785,7 +785,7 @@ OAES_RET oaes_key_import( OAES_CTX * ctx,
 	}
 
 	memcpy( _ctx->key->data, data + OAES_BLOCK_SIZE, _key_length );
-	_rc = _rc || oaes_key_expand( ctx );
+	_rc = (OAES_RET)oaes_key_expand( ctx );
 
 	if( _rc != OAES_RET_SUCCESS )
 	{
@@ -837,7 +837,7 @@ OAES_RET oaes_key_import_data( OAES_CTX * ctx,
 	}
 
 	memcpy( _ctx->key->data, data, data_len );
-	_rc = _rc || oaes_key_expand( ctx );
+	_rc = (OAES_RET)oaes_key_expand( ctx );
 
 	if( _rc != OAES_RET_SUCCESS )
 	{

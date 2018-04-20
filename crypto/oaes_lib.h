@@ -33,10 +33,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus 
-extern "C" {
-#endif
-
 #ifdef _WIN32
 #	ifdef OAES_SHARED
 #		ifdef oaes_lib_EXPORTS
@@ -206,9 +202,5 @@ OAES_API OAES_RET oaes_sprintf(
 OAES_API OAES_RET oaes_encryption_round( const uint8_t * key, uint8_t * c );
 
 OAES_API OAES_RET oaes_pseudo_encrypt_ecb( OAES_CTX * ctx, uint8_t * c );
-
-#ifdef __cplusplus 
-}
-#endif
 
 #endif // _OAES_LIB_H

@@ -17,7 +17,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include <inttypes.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -41,22 +40,15 @@
 #include <openssl/sha.h>
 #include <cuda_runtime.h>
 #include "compat.h"
-#include "miner.h"
+#include "cryptonight.h"
 
 #define PROGRAM_NAME "ccminer-cryptonight"
 #define LP_SCANTIME	60
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-	int cuda_num_devices();
-	void cuda_deviceinfo(int);
-	void cuda_set_device_config(int);
-	int cuda_finddevice(char *name);
-#ifdef __cplusplus
-}
-#endif
+int cuda_num_devices();
+void cuda_deviceinfo(int);
+void cuda_set_device_config(int);
+int cuda_finddevice(char *name);
 
 extern int cryptonight_hash(void* output, const void* input, size_t len, int variant);
 void parse_device_config(int device, char *config, int *blocks, int *threads);
@@ -126,6 +118,9 @@ bool opt_colors = false;
 #ifdef WIN32
 HANDLE handl;
 #endif
+
+extern uint64_t MEMORY;
+extern uint32_t ITER;
 
 algo_t opt_algo = algo_monero;
 int forkversion = 7;
@@ -216,6 +211,7 @@ const char *algo_names[] =
 	"graft",
 	"stellite",
 	"intense"
+	"sumokoin"
 };
 
 static char const usage[] = "\
@@ -227,6 +223,7 @@ Usage: " PROGRAM_NAME " [OPTIONS]\n\
                                   graft\n\
                                   stellite\n\
                                   intense\n\
+                                  sumokoin\n\
         -d, --devices           takes a comma separated list of CUDA devices to use.\n\
                                 Device IDs start counting from 0! Alternatively takes\n\
                                 string names of your cards like gtx780ti or gt640#2\n\
@@ -499,6 +496,11 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 	{
 		pthread_mutex_lock(&rpc2_job_lock);
 		char *blob = (char *)malloc(blobLen / 2);
+		if (blob == NULL)
+		{
+			applog(LOG_ERR, "file %s line %d: Out of memory!", __FILE__, __LINE__);
+			proper_exit(1);
+		}
 		if(!hex2bin((unsigned char *)blob, hexblob, blobLen / 2))
 		{
 			applog(LOG_ERR, "JSON inval blob");
@@ -511,6 +513,11 @@ bool rpc2_job_decode(const json_t *job, struct work *work)
 		}
 		rpc2_bloblen = blobLen / 2;
 		rpc2_blob = (char *)malloc(rpc2_bloblen);
+		if (rpc2_blob == NULL)
+		{
+			applog(LOG_ERR, "file %s line %d: Out of memory!", __FILE__, __LINE__);
+			proper_exit(1);
+		}
 		memcpy(rpc2_blob, blob, blobLen / 2);
 
 		free(blob);
@@ -1009,6 +1016,11 @@ static bool submit_work(struct thr_info *thr, const struct work *work_in)
 		return false;
 
 	wc->u.work = (struct work *)malloc(sizeof(*work_in));
+	if(wc->u.work == NULL)
+	{
+		applog(LOG_ERR, "file %s line %d: Out of memory!", __FILE__, __LINE__);
+		proper_exit(1);
+	}
 	if(!wc->u.work) {
 		workio_cmd_free(wc);
 		return false;
@@ -1526,6 +1538,11 @@ static void parse_arg(int key, char *arg)
 				forkversion = 3;
 			if (opt_algo == algo_intense)
 				forkversion = 4;
+			if (opt_algo == algo_sumokoin)
+			{
+					MEMORY = 1 << 22;
+					ITER = 1 << 19;
+			}
 			break;
 		case 'B':
 			opt_background = true;
@@ -1616,6 +1633,11 @@ static void parse_arg(int key, char *arg)
 					show_usage_and_exit(1);
 				free(rpc_url);
 				rpc_url = (char*)malloc(strlen(arg) + 8);
+				if (rpc_url == NULL)
+				{
+					applog(LOG_ERR, "file %s line %d: Out of memory!", __FILE__, __LINE__);
+					exit(1);
+				}
 				sprintf(rpc_url, "http://%s", arg);
 			}
 			p = strrchr(rpc_url, '@');

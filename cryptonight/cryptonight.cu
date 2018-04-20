@@ -5,16 +5,23 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 
-extern "C"
-{
 #ifdef WIN32
 #include "cpuminer-config-win.h"
 #else
 #include "cpuminer-config.h"
 #endif
-#include "miner.h"
-}
 #include "cryptonight.h"
+
+extern uint64_t MEMORY;
+extern uint32_t ITER;
+extern void proper_exit(int);
+
+void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, uint32_t *d_ctx_state, uint32_t *d_ctx_a, uint32_t *d_ctx_b, uint32_t *d_ctx_key1, uint32_t *d_ctx_key2, int variant, uint32_t *d_ctx_tweak1_2);
+
+void cryptonight_extra_cpu_setData(int thr_id, const void *data, const void *pTargetIn);
+void cryptonight_extra_cpu_init(int thr_id);
+void cryptonight_extra_cpu_prepare(int thr_id, int threads, uint32_t startNonce, uint32_t *d_ctx_state, uint32_t *d_ctx_a, uint32_t *d_ctx_b, uint32_t *d_ctx_key1, uint32_t *d_ctx_key2, int variant, uint32_t *d_ctx_tweak1_2);
+void cryptonight_extra_cpu_final(int thr_id, int threads, uint32_t startNonce, uint32_t *nonce, uint32_t *d_ctx_state);
 
 extern char *device_name[MAX_GPU];
 extern int device_arch[MAX_GPU][2];
@@ -23,10 +30,19 @@ extern int device_map[MAX_GPU];
 extern int device_config[MAX_GPU][2];
 extern algo_t opt_algo;
 extern int forkversion;
-extern void proper_exit(int exitcode);
+
+void exit_if_cudaerror(int thr_id, const char *file, int line)
+{
+	cudaError_t err = cudaGetLastError();
+	if (err != cudaSuccess)
+	{
+		printf("\nGPU %d: %s\n%s line %d\n", device_map[thr_id], cudaGetErrorString(err), file, line);
+		proper_exit(1);
+	}
+}
 
 //Number of CUDA Devices on the system
-extern "C" int cuda_num_devices()
+int cuda_num_devices()
 {
 	int version;
 	cudaError_t err = cudaDriverGetVersion(&version);
@@ -54,7 +70,7 @@ extern "C" int cuda_num_devices()
 	}
 	return GPU_N;
 }
-extern "C" void cuda_set_device_config(int GPU_N)
+void cuda_set_device_config(int GPU_N)
 {
 	for (int i = 0; i < GPU_N; i++)
 	{
@@ -96,7 +112,7 @@ extern "C" void cuda_set_device_config(int GPU_N)
 				while (device_config[i][0] > device_mpcount[i])
 				{
 
-					if (freeMemory > size_t(device_config[i][0]) * size_t(device_config[i][1]) * 2097932)
+					if (freeMemory > size_t(device_config[i][0]) * size_t(device_config[i][1]) * (MEMORY + 688))
 					{
 						break;
 					}
@@ -114,7 +130,7 @@ extern "C" void cuda_set_device_config(int GPU_N)
 		}
 	}
 }
-extern "C" void cuda_deviceinfo(int GPU_N)
+void cuda_deviceinfo(int GPU_N)
 {
 	cudaError_t err;
 	for(int i = 0; i < GPU_N; i++)
@@ -161,7 +177,7 @@ static bool substringsearch(const char *haystack, const char *needle, int &match
 	return false;
 }
 
-extern "C" int cuda_finddevice(char *name)
+int cuda_finddevice(char *name)
 {
 	int num = cuda_num_devices();
 	int match = 0;
@@ -188,9 +204,9 @@ extern bool stop_mining;
 extern volatile bool mining_has_stopped[MAX_GPU];
 
 
-extern "C" int cryptonight_hash(void* output, const void* input, size_t len, int variant);
+int cryptonight_hash(void* output, const void* input, size_t len, int variant);
 
-extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t *ptarget, uint32_t max_nonce, unsigned long *hashes_done, uint32_t *results)
+int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t *ptarget, uint32_t max_nonce, unsigned long *hashes_done, uint32_t *results)
 {
 	cudaError_t err;
 	int res;
@@ -201,8 +217,15 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 	int cn_blocks = device_config[thr_id][0];
 	int cn_threads = device_config[thr_id][1];
 
-	if (opt_algo != algo_old)
-		variant = ((uint8_t*)pdata)[0] >= forkversion ? ((uint8_t*)pdata)[0] - forkversion + 1 : 0;
+	bool heavy;
+	if (opt_algo == algo_sumokoin)
+		heavy = true;
+	else
+	{
+		heavy = false;
+		if (opt_algo != algo_old)
+			variant = ((uint8_t*)pdata)[0] >= forkversion ? ((uint8_t*)pdata)[0] - forkversion + 1 : 0;
+	}
 
 	if(opt_benchmark)
 	{
@@ -258,9 +281,14 @@ extern "C" int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t 
 	{
 		uint32_t foundNonce[2];
 
-		cryptonight_extra_cpu_prepare(thr_id, throughput, nonce, d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id], variant, d_ctx_tweak1_2[thr_id]);
-		cryptonight_core_cpu_hash(thr_id, cn_blocks, cn_threads, d_long_state[thr_id], d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id], variant, d_ctx_tweak1_2[thr_id]);
-		cryptonight_extra_cpu_final(thr_id, throughput, nonce, foundNonce, d_ctx_state[thr_id]);
+		if (!heavy)
+		{
+			cryptonight_extra_cpu_prepare(thr_id, throughput, nonce, d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id], variant, d_ctx_tweak1_2[thr_id]);
+			cryptonight_core_cpu_hash(thr_id, cn_blocks, cn_threads, d_long_state[thr_id], d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id], variant, d_ctx_tweak1_2[thr_id]);
+			cryptonight_extra_cpu_final(thr_id, throughput, nonce, foundNonce, d_ctx_state[thr_id]);
+		}
+		else
+		{ } // not implemented yet
 
 		if(stop_mining)
 		{

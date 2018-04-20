@@ -17,16 +17,16 @@ bin_PROGRAMS	= ccminer
 ccminer_SOURCES		= elist.h miner.h compat.h \
 			  compat/inttypes.h compat/stdbool.h compat/unistd.h \
 			  compat/sys/time.h compat/getopt/getopt.h \
-			  cpu-miner.c util.c sha2.c \
+			  cpu-miner.cpp util.cpp sha2.cpp \
 			  cryptonight/cryptonight.cu cryptonight/cuda_cryptonight_core.cu cryptonight/cuda_cryptonight_extra.cu \
-			  cryptonight.c \
-			  crypto/oaes_lib.c \
-			  crypto/c_keccak.c \
-			  crypto/c_groestl.c \
-			  crypto/c_blake256.c \
-			  crypto/c_jh.c \
-			  crypto/c_skein.c \
-			  crypto/aesb.c
+			  cryptonight-cpu.cpp \
+			  crypto/oaes_lib.cpp \
+			  crypto/c_keccak.cpp \
+			  crypto/c_groestl.cpp \
+			  crypto/c_blake256.cpp \
+			  crypto/c_jh.cpp \
+			  crypto/c_skein.cpp \
+			  crypto/aesb.cpp
 
 
 ccminer_LDFLAGS		= $(PTHREAD_FLAGS) @CUDA_LDFLAGS@
@@ -37,4 +37,4 @@ NVCC_GENCODE		= -D_FORCE_INLINES $(CUDA_CFLAGS) -gencode=arch=compute_30,code=sm
 
 # we're now targeting all major compute architectures within one binary.
 .cu.o:
-	$(NVCC) @CFLAGS@ -I . $(NVCC_GENCODE) --maxrregcount=128 --ptxas-options=-v $(JANSSON_INCLUDES) -o $@ -c $<
+	$(NVCC) @CFLAGS@ -I . $(NVCC_GENCODE) --maxrregcount=128 $(JANSSON_INCLUDES) -o $@ -c $<

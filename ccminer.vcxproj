@@ -226,7 +226,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </CudaCompile>
     <CudaCompile />
     <CudaCompile>
-      <PtxAsOptionV>true</PtxAsOptionV>
+      <PtxAsOptionV>false</PtxAsOptionV>
       <Keep>true</Keep>
       <CodeGeneration>compute_30,sm_30;compute_35,sm_35;compute_37,sm_37;compute_50,sm_50;compute_52,sm_52;compute_60,sm_60;compute_61,sm_61;compute_70,sm_70</CodeGeneration>
       <Include>
@@ -257,27 +257,27 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="compat\jansson\strconv.c" />
     <ClCompile Include="compat\jansson\utf.c" />
     <ClCompile Include="compat\jansson\value.c" />
-    <ClCompile Include="cpu-miner.c">
+    <ClCompile Include="cpu-miner.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/TP %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/TP %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/TP %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/TP %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    <ClCompile Include="sha2.c">
+    <ClCompile Include="sha2.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/TP %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/TP %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/TP %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/TP %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    <ClCompile Include="crypto\aesb.c" />
-    <ClCompile Include="crypto\c_blake256.c" />
-    <ClCompile Include="crypto\c_groestl.c" />
-    <ClCompile Include="crypto\c_jh.c" />
-    <ClCompile Include="crypto\c_keccak.c" />
-    <ClCompile Include="crypto\c_skein.c" />
-    <ClCompile Include="crypto\oaes_lib.c" />
-    <ClCompile Include="cryptonight.c" />
-    <ClCompile Include="util.c">
+    <ClCompile Include="crypto\aesb.cpp" />
+    <ClCompile Include="crypto\c_blake256.cpp" />
+    <ClCompile Include="crypto\c_groestl.cpp" />
+    <ClCompile Include="crypto\c_jh.cpp" />
+    <ClCompile Include="crypto\c_keccak.cpp" />
+    <ClCompile Include="crypto\c_skein.cpp" />
+    <ClCompile Include="crypto\oaes_lib.cpp" />
+    <ClCompile Include="cryptonight-cpu.cpp" />
+    <ClCompile Include="util.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/TP %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/TP %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/TP %(AdditionalOptions)</AdditionalOptions>
@@ -302,7 +302,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="compat\unistd.h" />
     <ClInclude Include="cpuminer-config-win.h" />
     <ClInclude Include="crypto\hash.h" />
-    <ClInclude Include="cuda_helper.h" />
     <ClInclude Include="elist.h" />
     <ClInclude Include="miner.h" />
     <ClInclude Include="crypto\c_blake256.h" />
