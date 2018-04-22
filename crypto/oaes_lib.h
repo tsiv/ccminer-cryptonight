@@ -32,6 +32,7 @@
 #define _OAES_LIB_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef _WIN32
 #	ifdef OAES_SHARED
