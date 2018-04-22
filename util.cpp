@@ -8,7 +8,6 @@
 * any later version.  See COPYING for more details.
 */
 
-#define _GNU_SOURCE
 #ifdef WIN32
 #include "cpuminer-config-win.h"
 #else
@@ -113,7 +112,7 @@ void applog(int prio, const char *fmt, ...)
 		va_copy(ap2, ap);
 		len = vsnprintf(NULL, 0, fmt, ap2) + 1;
 		va_end(ap2);
-		buf = alloca(len);
+		buf = (char *)alloca(len);
 		if(vsnprintf(buf, len, fmt, ap) >= 0)
 			syslog(prio, "%s", buf);
 	}
@@ -249,8 +248,8 @@ static size_t resp_hdr_cb(void *ptr, size_t size, size_t nmemb, void *user_data)
 {
 	struct header_info *hi = (struct header_info *)user_data;
 	size_t remlen, slen, ptrlen = size * nmemb;
-	char *rem, *val = NULL, *key = NULL;
-	void *tmp;
+	char *rem = NULL, *val = NULL, *key = NULL;
+	void *tmp = NULL;
 
 	val = (char*)calloc(1, ptrlen);
 	key = (char*)calloc(1, ptrlen);
@@ -357,7 +356,8 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 											const char *userpass, const char *rpc_req,
 											bool longpoll_scan, bool longpoll, int *curl_err)
 {
-	json_t *val, *err_val, *res_val;
+	json_t *val = NULL, *err_val = NULL, *res_val = NULL;
+	char *s = NULL;
 	int rc;
 	struct data_buffer all_data = {0};
 	struct upload_buffer upload_data;
@@ -470,7 +470,7 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 
 	if(opt_protocol)
 	{
-		char *s = json_dumps(val, JSON_INDENT(3));
+		s = json_dumps(val, JSON_INDENT(3));
 		applog(LOG_DEBUG, "JSON protocol response:\n%s", s);
 		free(s);
 	}
@@ -483,8 +483,6 @@ json_t *json_rpc_call(CURL *curl, const char *url,
 	if(!res_val || json_is_null(res_val) ||
 		 (err_val && !json_is_null(err_val)))
 	{
-		char *s;
-
 		if(err_val)
 			s = json_dumps(err_val, JSON_INDENT(3));
 		else
@@ -740,7 +738,7 @@ static void stratum_buffer_append(struct stratum_ctx *sctx, const char *s)
 char *stratum_recv_line(struct stratum_ctx *sctx)
 {
 	ssize_t len, buflen;
-	char *tok, *sret = NULL;
+	char *tok = NULL, *sret = NULL;
 
 	if(!strstr(sctx->sockbuf, "\n"))
 	{
@@ -936,8 +934,9 @@ static const char *get_stratum_session_id(json_t *val)
 
 bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *pass)
 {
-	json_t *val = NULL, *res_val, *err_val;
-	char *s, *sret;
+	json_t *val = NULL, *res_val = NULL, *err_val = NULL;
+	json_t *job_val = NULL;
+	char *s = NULL, *sret = NULL;
 	json_error_t err;
 	bool ret = false;
 
@@ -977,7 +976,7 @@ bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *p
 	}
 
 	rpc2_login_decode(val);
-	json_t *job_val = json_object_get(res_val, "job");
+	job_val = json_object_get(res_val, "job");
 	pthread_mutex_lock(&sctx->work_lock);
 	if(job_val) rpc2_job_decode(job_val, &sctx->work);
 	pthread_mutex_unlock(&sctx->work_lock);
@@ -1003,12 +1002,14 @@ static bool stratum_2_job(struct stratum_ctx *sctx, json_t *params)
 
 static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 {
-	const char *job_id, *prevhash, *coinb1, *coinb2, *version, *nbits, *ntime, *nreward;
+	const char *job_id = NULL, *prevhash = NULL, *coinb1 = NULL, *coinb2 = NULL, *version = NULL, *nbits = NULL;
+	const char *ntime = NULL, *nreward = NULL;
+	const char *s = NULL;
 	size_t coinb1_size, coinb2_size;
 	bool clean, ret = false;
 	int merkle_count, i;
-	json_t *merkle_arr;
-	unsigned char **merkle;
+	json_t *merkle_arr = NULL;
+	unsigned char **merkle = NULL;
 
 	job_id = json_string_value(json_array_get(params, 0));
 	prevhash = json_string_value(json_array_get(params, 1));
@@ -1034,7 +1035,7 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	merkle = (unsigned char**)malloc(merkle_count * sizeof(char *));
 	for(i = 0; i < merkle_count; i++)
 	{
-		const char *s = json_string_value(json_array_get(merkle_arr, i));
+		s = json_string_value(json_array_get(merkle_arr, i));
 		if(!s || strlen(s) != 64)
 		{
 			while(i--)
@@ -1183,9 +1184,9 @@ static bool stratum_show_message(struct stratum_ctx *sctx, json_t *id, json_t *p
 
 bool stratum_handle_method(struct stratum_ctx *sctx, const char *s)
 {
-	json_t *val, *id, *params;
+	json_t *val = NULL, *id = NULL, *params = NULL;
 	json_error_t err;
-	const char *method;
+	const char *method = NULL;
 	bool ret = false;
 
 	val = JSON_LOADS(s, &err);
@@ -1301,7 +1302,7 @@ bool tq_push(struct thread_q *tq, void *data)
 
 void *tq_pop(struct thread_q *tq, const struct timespec *abstime)
 {
-	struct tq_ent *ent;
+	struct tq_ent *ent = NULL;
 	void *rval = NULL;
 	int rc;
 
@@ -1361,7 +1362,7 @@ void hexdump(const char *what, void *data, const size_t datalen)
 bool stratum_keepalived(struct stratum_ctx *sctx, const char *rpc2_id)
 {
 	json_t *val = NULL;
-	char *s;
+	char *s = NULL;
 	bool ret = false;
 
 	s = (char *)malloc(300 + strlen(rpc2_id));
