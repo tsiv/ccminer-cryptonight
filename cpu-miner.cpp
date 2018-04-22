@@ -12,7 +12,6 @@
 #else
 #include "cpuminer-config.h"
 #endif
-#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -374,8 +373,8 @@ void proper_exit(int exitcode)
 }
 
 json_t *json_rpc2_call_recur(CURL *curl, const char *url,
-														 const char *userpass, json_t *rpc_req,
-														 int *curl_err, int flags, int recur)
+							 const char *userpass, json_t *rpc_req,
+							 int *curl_err, int flags, int recur)
 {
 	if(recur >= 5)
 	{
@@ -399,16 +398,19 @@ json_t *json_rpc2_call_recur(CURL *curl, const char *url,
 		}
 	}
 	json_t *res = json_rpc_call(curl, url, userpass, json_dumps(rpc_req, 0), false, false,
-															curl_err);
-	if(!res) goto end;
+								curl_err);
+	if(!res)
+		return res;
 	json_t *error = json_object_get(res, "error");
-	if(!error) goto end;
+	if(!error)
+		return res;
 	json_t *message;
 	if(json_is_string(error))
 		message = error;
 	else
 		message = json_object_get(error, "message");
-	if(!message || !json_is_string(message)) goto end;
+	if(!message || !json_is_string(message))
+		return res;
 	const char *mes = json_string_value(message);
 	if(!strcmp(mes, "Unauthenticated"))
 	{
@@ -417,14 +419,14 @@ json_t *json_rpc2_call_recur(CURL *curl, const char *url,
 		sleep(1);
 		pthread_mutex_unlock(&rpc2_login_lock);
 		return json_rpc2_call_recur(curl, url, userpass, rpc_req,
-																curl_err, flags, recur + 1);
+									curl_err, flags, recur + 1);
 	}
 	else if(!strcmp(mes, "Low difficulty share") || !strcmp(mes, "Block expired") || !strcmp(mes, "Invalid job id") || !strcmp(mes, "Duplicate share"))
 	{
 		json_t *result = json_object_get(res, "result");
 		if(!result)
 		{
-			goto end;
+			return res;
 		}
 		json_object_set(result, "reject-reason", json_string(mes));
 	}
@@ -433,7 +435,6 @@ json_t *json_rpc2_call_recur(CURL *curl, const char *url,
 		applog(LOG_ERR, "json_rpc2.0 error: %s", mes);
 		return NULL;
 	}
-end:
 	return res;
 }
 
@@ -1229,7 +1230,7 @@ static void *longpoll_thread(void *userdata)
 {
 	struct thr_info *mythr = (struct thr_info *)userdata;
 	CURL *curl = NULL;
-	char *copy_start, *hdr_path = NULL, *lp_url = NULL;
+	char *copy_start = NULL, *hdr_path = NULL, *lp_url = NULL;
 	bool need_slash = false;
 
 	curl = curl_easy_init();
@@ -1344,8 +1345,10 @@ out:
 
 static bool stratum_handle_response(char *buf)
 {
-	json_t *val, *err_val, *res_val, *id_val;
+	json_t *val = NULL, *err_val = NULL, *res_val = NULL, *id_val = NULL;
+	json_t *status = NULL;
 	json_error_t err;
+	char *s = NULL;
 	bool ret = false;
 	bool valid = false;
 
@@ -1363,8 +1366,7 @@ static bool stratum_handle_response(char *buf)
 	if(!id_val || json_is_null(id_val) || (!res_val && !err_val) )
 		goto out;
 
-	char *s;
-	json_t *status = json_object_get(res_val, "status");
+	status = json_object_get(res_val, "status");
 	if(status != NULL)
 	{
 		s = (char*)json_string_value(status);
@@ -1399,7 +1401,7 @@ static void *stratum_thread(void *userdata)
 
 	stratum.url = (char*)tq_pop(mythr->q, NULL);
 	if(!stratum.url)
-		goto out;
+		return NULL;
 	applog(LOG_INFO, "Starting Stratum on %s", stratum.url);
 
 	while(1)
@@ -1421,7 +1423,7 @@ static void *stratum_thread(void *userdata)
 				{
 					applog(LOG_ERR, "...terminating workio thread");
 					tq_push(thr_info[work_thr_id].q, NULL);
-					goto out;
+					return NULL;
 				}
 				applog(LOG_ERR, "...retry after %d seconds", opt_fail_pause);
 				sleep(opt_fail_pause);
@@ -1464,8 +1466,6 @@ static void *stratum_thread(void *userdata)
 			stratum_handle_response(s);
 		free(s);
 	}
-
-out:
 	return NULL;
 }
 
