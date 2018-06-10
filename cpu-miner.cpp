@@ -1480,7 +1480,7 @@ static void show_version_and_exit(void)
 static void show_usage_and_exit(int status)
 {
 	if(status)
-		fprintf(stderr, "Try `" PROGRAM_NAME " --help' for more information.\n");
+		printf("Try `" PROGRAM_NAME " --help' for more information.\n");
 	else
 		printf(usage);
 	exit(status);
@@ -1910,7 +1910,7 @@ static void parse_cmdline(int argc, char *argv[])
 	}
 	if(optind < argc)
 	{
-		fprintf(stderr, "%s: unsupported non-option argument '%s'\n",
+		printf("%s: unsupported non-option argument '%s'\n",
 						argv[0], argv[optind]);
 		show_usage_and_exit(1);
 	}
@@ -2044,7 +2044,7 @@ int main(int argc, char *argv[])
 
 	if(!opt_benchmark && !rpc_url)
 	{
-		fprintf(stderr, "%s: no URL supplied\n", argv[0]);
+		printf("%s: no URL supplied\n", argv[0]);
 		show_usage_and_exit(1);
 	}
 
