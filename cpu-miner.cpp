@@ -209,7 +209,8 @@ const char *algo_names[] =
 	"monero",
 	"graft",
 	"stellite",
-	"intense"
+	"intense",
+	"electroneum",
 	"sumokoin"
 };
 
@@ -219,6 +220,7 @@ Usage: " PROGRAM_NAME " [OPTIONS]\n\
         -a  --algo              choose between the supported algos:\n\
                                   cryptonight\n\
                                   monero\n\
+                                  electroneum\n\
                                   graft\n\
                                   stellite\n\
                                   intense\n\
@@ -1536,8 +1538,10 @@ static void parse_arg(int key, char *arg)
 				forkversion = 8;
 			if (opt_algo == algo_stellite)
 				forkversion = 3;
-			if (opt_algo == algo_intense)
+			if(opt_algo == algo_intense)
 				forkversion = 4;
+			if (opt_algo == algo_electroneum)
+				forkversion = 6;
 			if (opt_algo == algo_sumokoin)
 			{
 					MEMORY = 1 << 22;

@@ -319,6 +319,7 @@ typedef enum __algo_t
 	algo_graft,
 	algo_stellite,
 	algo_intense,
+	algo_electroneum,
 	algo_sumokoin
 } algo_t;
 #endif /* __MINER_H__ */
