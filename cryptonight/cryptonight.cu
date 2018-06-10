@@ -90,8 +90,12 @@ void cuda_set_device_config(int GPU_N)
 		}
 		if (device_config[i][0] == 0)
 		{
+			int len = strlen(device_name[i]);
 			device_config[i][0] = device_mpcount[i] * 4;
-			device_config[i][1] = 32;
+			if(len > 0 && device_name[i][len - 1] == 'M') // mobile gpu
+				device_config[i][1] = 8;
+			else
+				device_config[i][1] = 32;
 
 			if (device_arch[i][0] < 6)
 			{
