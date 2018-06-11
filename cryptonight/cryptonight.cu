@@ -233,7 +233,7 @@ int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t *ptarget, u
 
 	if(opt_benchmark)
 	{
-		((uint32_t*)ptarget)[7] = 0x0000ff;
+		((uint32_t*)ptarget)[7] = 0x0002ffff;
 		pdata[17] = 0;
 	}
 	const uint32_t Htarg = ptarget[7];
@@ -311,7 +311,7 @@ int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t *ptarget, u
 			if(rc && (vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 			{
 				res = 1;
-				if(opt_debug)
+				if(opt_debug || opt_benchmark)
 					applog(LOG_DEBUG, "GPU #%d: found nonce $%08X", device_map[thr_id], foundNonce[0]);
 				results[0] = foundNonce[0];
 				*hashes_done = nonce - first_nonce + throughput;
@@ -322,7 +322,7 @@ int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t *ptarget, u
 					if(rc && (vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 					{
 						res++;
-						if(opt_debug)
+						if(opt_debug || opt_benchmark)
 							applog(LOG_DEBUG, "GPU #%d: found nonce $%08X", device_map[thr_id], foundNonce[1]);
 						results[1] = foundNonce[1];
 					}

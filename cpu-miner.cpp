@@ -972,17 +972,6 @@ static bool get_work(struct thr_info *thr, struct work *work)
 	struct workio_cmd *wc;
 	struct work *work_heap;
 
-	if(opt_benchmark)
-	{
-		memset(work->data, 0x55, 76);
-		work->data[17] = swab32((uint32_t)time(NULL));
-		memset(work->data + 19, 0x00, 52);
-		work->data[20] = 0x80000000;
-		work->data[31] = 0x00000280;
-		memset(work->target, 0x00, sizeof(work->target));
-		return true;
-	}
-
 	/* fill out work request message */
 	wc = (struct workio_cmd *)calloc(1, sizeof(*wc));
 	if(!wc)
@@ -1118,13 +1107,23 @@ static void *miner_thread(void *userdata)
 			pthread_mutex_lock(&g_work_lock);
 			if(!have_longpoll || time(NULL) >= g_work_time + LP_SCANTIME * 3 / 4 || *nonceptr >= end_nonce)
 			{
-				if(unlikely(!get_work(mythr, &g_work)))
+				if(opt_benchmark)
 				{
-					applog(LOG_ERR, "work retrieval failed, exiting "
-								 "mining thread %d", mythr->id);
-					pthread_mutex_unlock(&g_work_lock);
-					goto out;
+					g_work.data[0] = 8;
+					memset(g_work.data + 1, 0x00, 76);
+					g_work.data[20] = 0x80000000;
+					memset(g_work.data + 21, 0x00, 22);
+					g_work.data[31] = 0x00000280;
+					memset(g_work.target, 0x00, sizeof(g_work.target));
 				}
+				else
+					if(unlikely(!get_work(mythr, &g_work)))
+					{
+						applog(LOG_ERR, "work retrieval failed, exiting "
+							   "mining thread %d", mythr->id);
+						pthread_mutex_unlock(&g_work_lock);
+						goto out;
+					}
 				g_work_time = time(NULL);
 			}
 		}
@@ -1147,6 +1146,8 @@ static void *miner_thread(void *userdata)
 		work_restart[thr_id].restart = 0;
 
 		/* adjust max_nonce to meet target scan time */
+		if(opt_benchmark)
+			opt_scantime = 30;
 		if(have_stratum)
 			max64 = LP_SCANTIME;
 		else
