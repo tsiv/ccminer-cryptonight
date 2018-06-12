@@ -38,6 +38,8 @@ most of their command line interface and options.
                           monero      (v7)
                           graft       (v8)
                           stellite    (v3)
+                          intense     (v4)
+                          electroneum (v6)
  -d, --devices         gives a comma separated list of CUDA device IDs
                        to operate on. Device IDs start counting from 0!
                        Alternatively give string names of your card like

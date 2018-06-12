@@ -25,7 +25,14 @@ Monero and other coins based on the Cryptonight algorithm.
 THIS PROGRAM IS PROVIDED "AS-IS", USE IT AT YOUR OWN RISK!
 
 ## Command Line Options
-```
+`
+ -a  --algo            choose between the supported algos:
+                          cryptonight (the old version)
+                          monero      (v7)
+                          graft       (v8)
+                          stellite    (v3)
+                          intense     (v4)
+                          electroneum (v6)
  -d, --devices         gives a comma separated list of CUDA device IDs
                        to operate on. Device IDs start counting from 0!
                        Alternatively give string names of your card like
