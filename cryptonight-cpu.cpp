@@ -20,14 +20,31 @@
 uint64_t MEMORY = 1ULL << 21; // 2 MiB / 2097152 B
 uint32_t ITER = 1 << 20; // 1048576
 
+struct cryptonight_ctx
+{
+	uint8_t *long_state;
+	union cn_slow_hash_state state;
+	uint8_t text[INIT_SIZE_BYTE];
+	uint8_t a[AES_BLOCK_SIZE];
+	uint8_t b[AES_BLOCK_SIZE];
+	uint8_t c[AES_BLOCK_SIZE];
+	oaes_ctx* aes_ctx;
+};
+
 #define VARIANT1_1(p) \
-  do if (variant > 0) \
+  if (variant == 2 && opt_algo == algo_stellite) \
   { \
+    const uint8_t tmp = ((const uint8_t*)(p))[11]; \
+    static const uint32_t table = 0x75312; \
+    const uint8_t index = (((tmp >> 4) & 6) | (tmp & 1)) << 1; \
+    ((uint8_t*)(p))[11] = tmp ^ ((table >> index) & 0x30); \
+  }  \
+  else if(variant > 0){ \
     const uint8_t tmp = ((const uint8_t*)(p))[11]; \
     static const uint32_t table = 0x75310; \
     const uint8_t index = (((tmp >> 3) & 6) | (tmp & 1)) << 1; \
     ((uint8_t*)(p))[11] = tmp ^ ((table >> index) & 0x30); \
-  } while(0)
+  }
 
 #define VARIANT1_INIT() \
   if (variant > 0 && len < 43) \
@@ -35,16 +52,6 @@ uint32_t ITER = 1 << 20; // 1048576
     return 0; \
   } \
   const uint64_t tweak1_2 = variant > 0 ? *((const uint64_t*) (((const uint8_t*)input) + 35)) ^ ctx->state.hs.w[24] : 0
-
-struct cryptonight_ctx {
-    uint8_t *long_state;
-    union cn_slow_hash_state state;
-    uint8_t text[INIT_SIZE_BYTE];
-    uint8_t a[AES_BLOCK_SIZE];
-    uint8_t b[AES_BLOCK_SIZE];
-    uint8_t c[AES_BLOCK_SIZE];
-    oaes_ctx* aes_ctx;
-};
 
 static void do_blake_hash(const void* input, size_t len, char* output) {
     blake256_hash((uint8_t*)output, (const uint8_t*)input, len);
@@ -150,7 +157,7 @@ static void xor_blocks_dst(const uint8_t* a, const uint8_t* b, uint8_t* dst) {
     ((uint64_t*) dst)[1] = ((uint64_t*) a)[1] ^ ((uint64_t*) b)[1];
 }
 
-int cryptonight_hash_ctx(void* output, const void* input, size_t len, struct cryptonight_ctx* ctx, int variant) {
+int cryptonight_hash_ctx(void* output, const void* input, size_t len, struct cryptonight_ctx* ctx, int variant, algo_t opt_algo) {
     size_t i, j;
     hash_process(&ctx->state.hs, (const uint8_t*) input, len);
     ctx->aes_ctx = (oaes_ctx*) oaes_alloc();
@@ -216,7 +223,7 @@ int cryptonight_hash_ctx(void* output, const void* input, size_t len, struct cry
 
 extern void proper_exit(int);
 
-int cryptonight_hash(void* output, const void* input, size_t len, int variant) {
+int cryptonight_hash(void* output, const void* input, size_t len, int variant, algo_t opt_algo) {
     struct cryptonight_ctx *ctx = (struct cryptonight_ctx*)malloc(sizeof(struct cryptonight_ctx));
 	if (ctx == NULL)
 	{
@@ -229,7 +236,7 @@ int cryptonight_hash(void* output, const void* input, size_t len, int variant) {
 		applog(LOG_ERR, "file %s line %d: Out of memory!", __FILE__, __LINE__);
 		proper_exit(1);
 	}
-	int rc = cryptonight_hash_ctx(output, input, len, ctx, variant);
+	int rc = cryptonight_hash_ctx(output, input, len, ctx, variant, opt_algo);
     free(ctx);
     return rc;
 }

@@ -49,7 +49,7 @@ void cuda_deviceinfo(int);
 void cuda_set_device_config(int);
 int cuda_finddevice(char *name);
 
-extern int cryptonight_hash(void* output, const void* input, size_t len, int variant);
+extern int cryptonight_hash(void* output, const void* input, size_t len, int variant, algo_t opt_algo);
 void parse_device_config(int device, char *config, int *blocks, int *threads);
 
 #ifdef __linux /* Linux specific policy and affinity management */
@@ -671,7 +671,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		if(opt_algo != algo_old)
 			variant = ((unsigned char*)work->data)[0] >= forkversion ? ((unsigned char*)work->data)[0] - forkversion + 1 : 0;
 		char hash[32];
-		if (!cryptonight_hash((void *)hash, (const void *)work->data, 76, variant)) {
+		if (!cryptonight_hash((void *)hash, (const void *)work->data, 76, variant, opt_algo)) {
 			applog(LOG_ERR, "submit_upstream_work cryptonight_hash failed");
 			free(str);
 			return rc;
@@ -697,7 +697,7 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		if (opt_algo != algo_old)
 			variant = ((unsigned char*)work->data)[0] >= forkversion ? ((unsigned char*)work->data)[0] - forkversion + 1 : 0;
 		char hash[32];
-		if (!cryptonight_hash((void *)hash, (const void *)work->data, 76, variant)) {
+		if (!cryptonight_hash((void *)hash, (const void *)work->data, 76, variant, opt_algo)) {
 			applog(LOG_ERR, "submit_upstream_work cryptonight_hash failed");
 			free(str);
 			return rc;

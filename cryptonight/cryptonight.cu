@@ -16,7 +16,7 @@ extern uint64_t MEMORY;
 extern uint32_t ITER;
 extern void proper_exit(int);
 
-void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, uint32_t *d_ctx_state, uint32_t *d_ctx_a, uint32_t *d_ctx_b, uint32_t *d_ctx_key1, uint32_t *d_ctx_key2, int variant, uint32_t *d_ctx_tweak1_2);
+void cryptonight_core_cpu_hash(int thr_id, int blocks, int threads, uint32_t *d_long_state, uint32_t *d_ctx_state, uint32_t *d_ctx_a, uint32_t *d_ctx_b, uint32_t *d_ctx_key1, uint32_t *d_ctx_key2, int variant, uint32_t *d_ctx_tweak1_2, algo_t opt_algo);
 
 void cryptonight_extra_cpu_setData(int thr_id, const void *data, const void *pTargetIn);
 void cryptonight_extra_cpu_init(int thr_id);
@@ -208,7 +208,7 @@ extern bool stop_mining;
 extern volatile bool mining_has_stopped[MAX_GPU];
 
 
-int cryptonight_hash(void* output, const void* input, size_t len, int variant);
+int cryptonight_hash(void* output, const void* input, size_t len, int variant, algo_t opt_algo);
 
 int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t *ptarget, uint32_t max_nonce, unsigned long *hashes_done, uint32_t *results)
 {
@@ -288,7 +288,7 @@ int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t *ptarget, u
 		if (!heavy)
 		{
 			cryptonight_extra_cpu_prepare(thr_id, throughput, nonce, d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id], variant, d_ctx_tweak1_2[thr_id]);
-			cryptonight_core_cpu_hash(thr_id, cn_blocks, cn_threads, d_long_state[thr_id], d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id], variant, d_ctx_tweak1_2[thr_id]);
+			cryptonight_core_cpu_hash(thr_id, cn_blocks, cn_threads, d_long_state[thr_id], d_ctx_state[thr_id], d_ctx_a[thr_id], d_ctx_b[thr_id], d_ctx_key1[thr_id], d_ctx_key2[thr_id], variant, d_ctx_tweak1_2[thr_id], opt_algo);
 			cryptonight_extra_cpu_final(thr_id, throughput, nonce, foundNonce, d_ctx_state[thr_id]);
 		}
 		else
@@ -307,7 +307,7 @@ int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t *ptarget, u
 			memcpy(tempdata, pdata, 76);
 			uint32_t *tempnonceptr = (uint32_t*)(((char*)tempdata) + 39);
 			*tempnonceptr = foundNonce[0];
-			const int rc = cryptonight_hash(vhash64, tempdata, 76, variant);
+			const int rc = cryptonight_hash(vhash64, tempdata, 76, variant, opt_algo);
 			if(rc && (vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 			{
 				res = 1;
@@ -318,7 +318,7 @@ int scanhash_cryptonight(int thr_id, uint32_t *pdata, const uint32_t *ptarget, u
 				if(foundNonce[1] < 0xffffffff)
 				{
 					*tempnonceptr = foundNonce[1];
-					const int rc = cryptonight_hash(vhash64, tempdata, 76, variant);
+					const int rc = cryptonight_hash(vhash64, tempdata, 76, variant, opt_algo);
 					if(rc && (vhash64[7] <= Htarg) && fulltest(vhash64, ptarget))
 					{
 						res++;

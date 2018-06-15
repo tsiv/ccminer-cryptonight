@@ -192,11 +192,22 @@ void sha256_init_8way(uint32_t *state);
 void sha256_transform_8way(uint32_t *state, const uint32_t *block, int swap);
 #endif
 
+typedef enum __algo_t
+{
+	algo_old,
+	algo_monero,
+	algo_graft,
+	algo_stellite,
+	algo_intense,
+	algo_electroneum,
+	algo_sumokoin
+} algo_t;
+
 extern int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 	const uint32_t *ptarget, uint32_t max_nonce,
 	unsigned long *hashes_done, uint32_t *results);
 
-extern int cryptonight_hash(void* output, const void* input, size_t len, int variant);
+extern int cryptonight_hash(void* output, const void* input, size_t len, int variant, algo_t opt_algo);
 
 struct thr_info {
 	int		id;
@@ -312,14 +323,4 @@ extern void *tq_pop(struct thread_q *tq, const struct timespec *abstime);
 extern void tq_freeze(struct thread_q *tq);
 extern void tq_thaw(struct thread_q *tq);
 
-typedef enum __algo_t
-{
-	algo_old,
-	algo_monero,
-	algo_graft,
-	algo_stellite,
-	algo_intense,
-	algo_electroneum,
-	algo_sumokoin
-} algo_t;
 #endif /* __MINER_H__ */
