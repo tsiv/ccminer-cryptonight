@@ -1977,7 +1977,7 @@ static int msver(void)
 	return version;
 }
 
-#define PROGRAM_VERSION "3.03"
+#define PROGRAM_VERSION "3.04"
 int main(int argc, char *argv[])
 {
 	struct thr_info *thr;
