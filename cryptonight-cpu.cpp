@@ -223,7 +223,8 @@ int cryptonight_hash_ctx(void* output, const void* input, size_t len, struct cry
 
 extern void proper_exit(int);
 
-int cryptonight_hash(void* output, const void* input, size_t len, int variant, algo_t opt_algo) {
+int cryptonight_hash(void* output, const void* input, size_t len, int variant, algo_t opt_algo)
+{
     struct cryptonight_ctx *ctx = (struct cryptonight_ctx*)malloc(sizeof(struct cryptonight_ctx));
 	if (ctx == NULL)
 	{
@@ -237,6 +238,7 @@ int cryptonight_hash(void* output, const void* input, size_t len, int variant, a
 		proper_exit(1);
 	}
 	int rc = cryptonight_hash_ctx(output, input, len, ctx, variant, opt_algo);
-    free(ctx);
+	free(ctx->long_state);
+	free(ctx);
     return rc;
 }
