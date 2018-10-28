@@ -8,7 +8,7 @@
 #define GROESTL_ROUNDS512 10
 #define GROESTL_HASH_BIT_LEN 256
 
-#define GROESTL_ROTL32(v, n) ((((v)<<(n))|((v)>>(32-(n))))&li_32(ffffffff))
+#define GROESTL_ROTL32(v, n) ROTL32(v, n)
 
 
 #define li_32(h) 0x##h##u
@@ -28,9 +28,9 @@ typedef struct {
 
 
 
-__constant__ uint32_t d_groestl_T[512];
-
-const uint32_t h_groestl_T[512] = {0xa5f432c6, 0xc6a597f4, 0x84976ff8, 0xf884eb97, 0x99b05eee, 0xee99c7b0, 0x8d8c7af6, 0xf68df78c, 0xd17e8ff, 0xff0de517, 0xbddc0ad6, 0xd6bdb7dc, 0xb1c816de, 0xdeb1a7c8, 0x54fc6d91, 0x915439fc
+__constant__ uint32_t d_groestl_T[512] =
+{
+	0xa5f432c6, 0xc6a597f4, 0x84976ff8, 0xf884eb97, 0x99b05eee, 0xee99c7b0, 0x8d8c7af6, 0xf68df78c, 0xd17e8ff, 0xff0de517, 0xbddc0ad6, 0xd6bdb7dc, 0xb1c816de, 0xdeb1a7c8, 0x54fc6d91, 0x915439fc
 , 0x50f09060, 0x6050c0f0, 0x3050702, 0x2030405, 0xa9e02ece, 0xcea987e0, 0x7d87d156, 0x567dac87, 0x192bcce7, 0xe719d52b, 0x62a613b5, 0xb56271a6, 0xe6317c4d, 0x4de69a31, 0x9ab559ec, 0xec9ac3b5
 , 0x45cf408f, 0x8f4505cf, 0x9dbca31f, 0x1f9d3ebc, 0x40c04989, 0x894009c0, 0x879268fa, 0xfa87ef92, 0x153fd0ef, 0xef15c53f, 0xeb2694b2, 0xb2eb7f26, 0xc940ce8e, 0x8ec90740, 0xb1de6fb, 0xfb0bed1d
 , 0xec2f6e41, 0x41ec822f, 0x67a91ab3, 0xb3677da9, 0xfd1c435f, 0x5ffdbe1c, 0xea256045, 0x45ea8a25, 0xbfdaf923, 0x23bf46da, 0xf7025153, 0x53f7a602, 0x96a145e4, 0xe496d3a1, 0x5bed769b, 0x9b5b2ded
@@ -61,7 +61,8 @@ const uint32_t h_groestl_T[512] = {0xa5f432c6, 0xc6a597f4, 0x84976ff8, 0xf884eb9
 , 0x384891d9, 0xd938a948, 0x1335deeb, 0xeb13cd35, 0xb3cee52b, 0x2bb356ce, 0x33557722, 0x22334455, 0xbbd604d2, 0xd2bbbfd6, 0x709039a9, 0xa9704990, 0x89808707, 0x7890e80, 0xa7f2c133, 0x33a766f2
 , 0xb6c1ec2d, 0x2db65ac1, 0x22665a3c, 0x3c227866, 0x92adb815, 0x15922aad, 0x2060a9c9, 0xc9208960, 0x49db5c87, 0x874915db, 0xff1ab0aa, 0xaaff4f1a, 0x7888d850, 0x5078a088, 0x7a8e2ba5, 0xa57a518e
 , 0x8f8a8903, 0x38f068a, 0xf8134a59, 0x59f8b213, 0x809b9209, 0x980129b, 0x1739231a, 0x1a173439, 0xda751065, 0x65daca75, 0x315384d7, 0xd731b553, 0xc651d584, 0x84c61351, 0xb8d303d0, 0xd0b8bbd3
-, 0xc35edc82, 0x82c31f5e, 0xb0cbe229, 0x29b052cb, 0x7799c35a, 0x5a77b499, 0x11332d1e, 0x1e113c33, 0xcb463d7b, 0x7bcbf646, 0xfc1fb7a8, 0xa8fc4b1f, 0xd6610c6d, 0x6dd6da61, 0x3a4e622c, 0x2c3a584e};
+, 0xc35edc82, 0x82c31f5e, 0xb0cbe229, 0x29b052cb, 0x7799c35a, 0x5a77b499, 0x11332d1e, 0x1e113c33, 0xcb463d7b, 0x7bcbf646, 0xfc1fb7a8, 0xa8fc4b1f, 0xd6610c6d, 0x6dd6da61, 0x3a4e622c, 0x2c3a584e
+};
 
 #define GROESTL_ROTATE_COLUMN_DOWN(v1, v2, amount_bytes, temp_var) {temp_var = (v1<<(8*amount_bytes))|(v2>>(8*(4-amount_bytes))); \
 															v2 = (v2<<(8*amount_bytes))|(v1>>(8*(4-amount_bytes))); \
@@ -105,7 +106,7 @@ const uint32_t h_groestl_T[512] = {0xa5f432c6, 0xc6a597f4, 0x84976ff8, 0xf884eb9
    y[i] = tu;						\
    y[i+1] = tl;
 
-__device__ void cn_groestl_RND512P(uint8_t *x, uint32_t *y, uint32_t r)
+__device__ void cn_groestl_RND512P(uint8_t * __restrict__ x, uint32_t * __restrict__ y, uint32_t r)
 {
     uint32_t temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp;
     uint32_t* x32 = (uint32_t*)x;
@@ -127,7 +128,7 @@ __device__ void cn_groestl_RND512P(uint8_t *x, uint32_t *y, uint32_t r)
     GROESTL_COLUMN(x,y,14, 14,  0,  2,  4,  7,  9, 11, 13, temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp);
 }
 
-__device__ void cn_groestl_RND512Q(uint8_t *x, uint32_t *y, uint32_t r)
+__device__ void cn_groestl_RND512Q(uint8_t * __restrict__ x, uint32_t * __restrict__ y, uint32_t r)
 {
     uint32_t temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp;
     uint32_t* x32 = (uint32_t*)x;
@@ -157,7 +158,7 @@ __device__ void cn_groestl_RND512Q(uint8_t *x, uint32_t *y, uint32_t r)
     GROESTL_COLUMN(x,y,14,  0,  4,  8, 12, 15,  3,  7, 11, temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp);
 }
 
-__device__ void cn_groestl_F512(uint32_t *h, const uint32_t *m) 
+__device__ void cn_groestl_F512(uint32_t * __restrict__ h, const uint32_t * __restrict__ m)
 {
     int i;
     uint32_t Ptmp[2*GROESTL_COLS512];
@@ -221,8 +222,8 @@ __device__ void cn_groestl_outputtransformation(groestlHashState *ctx)
         ctx->chaining[j] ^= temp[j];
 }
 
-__device__ void cn_groestl_transform(groestlHashState *ctx,
-	       const uint8_t *input, 
+__device__ void cn_groestl_transform(groestlHashState * __restrict__ ctx,
+																		 const uint8_t * __restrict__ input,
 	       int msglen) 
 {
     for (; msglen >= GROESTL_SIZE512; msglen -= GROESTL_SIZE512, input += GROESTL_SIZE512) {
@@ -232,8 +233,8 @@ __device__ void cn_groestl_transform(groestlHashState *ctx,
     }
 }
 
-__device__ void cn_groestl_final(groestlHashState* ctx,
-		 BitSequence* output)
+__device__ void cn_groestl_final(groestlHashState*  __restrict__ ctx,
+																 BitSequence* __restrict__  output)
 {
     int i, j = 0, hashbytelen = GROESTL_HASH_BIT_LEN/8;
     uint8_t *s = (BitSequence*)ctx->chaining;
@@ -283,8 +284,8 @@ __device__ void cn_groestl_final(groestlHashState* ctx,
     }
 }
 
-__device__ void cn_groestl_update(groestlHashState* ctx,
-		  const BitSequence* input, DataLength databitlen) 
+__device__ void cn_groestl_update(groestlHashState* __restrict__ ctx,
+																	const BitSequence* __restrict__ input, DataLength databitlen)
 {
     int index = 0;
     int msglen = (int)(databitlen/8);
@@ -333,7 +334,7 @@ __device__ void cn_groestl_init(groestlHashState* ctx)
     ctx->bits_in_last_byte = 0;
 }
 
-__device__ void cn_groestl(const BitSequence *data, DataLength len, BitSequence *hashval)
+__device__ void cn_groestl(const BitSequence * __restrict__ data, DataLength len, BitSequence * __restrict__ hashval)
 {
     DataLength databitlen = len << 3;
     groestlHashState context;

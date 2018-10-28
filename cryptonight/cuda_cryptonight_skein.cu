@@ -148,7 +148,7 @@ __device__ void cn_skein_init(skeinHashState *state, size_t hashBitLen)
     Skein_Start_New_Type(ctx, MSG);
 }
 
-__device__ void cn_skein512_processblock(Skein_512_Ctxt_t *ctx,const uint8_t *blkPtr,size_t blkCnt,size_t byteCntAdd)
+__device__ void cn_skein512_processblock(Skein_512_Ctxt_t * __restrict__ ctx, const uint8_t * __restrict__ blkPtr, size_t blkCnt, size_t byteCntAdd)
 {
     enum {   
         R_512_0_0=46, R_512_0_1=36, R_512_0_2=19, R_512_0_3=37,
@@ -223,7 +223,7 @@ __device__ void cn_skein512_processblock(Skein_512_Ctxt_t *ctx,const uint8_t *bl
     ctx->h.T[1] = ts[1];
 }
 
-__device__ void cn_skein_final(skeinHashState *state, uint8_t *hashVal)
+__device__ void cn_skein_final(skeinHashState * __restrict__ state, uint8_t * __restrict__ hashVal)
 {
     size_t i,n,byteCnt;
     uint64_t X[SKEIN_512_STATE_WORDS];
@@ -266,7 +266,7 @@ __device__ void cn_skein_final(skeinHashState *state, uint8_t *hashVal)
     }
 }
 
-__device__ void cn_skein512_update(Skein_512_Ctxt_t *ctx, const uint8_t *msg, size_t msgByteCnt)
+__device__ void cn_skein512_update(Skein_512_Ctxt_t * __restrict__ ctx, const uint8_t * __restrict__ msg, size_t msgByteCnt)
 {
     size_t n;
 
@@ -304,7 +304,7 @@ __device__ void cn_skein512_update(Skein_512_Ctxt_t *ctx, const uint8_t *msg, si
     }
 }
 
-__device__ void cn_skein_update(skeinHashState *state, const BitSequence *data, DataLength databitlen)
+__device__ void cn_skein_update(skeinHashState * __restrict__ state, const BitSequence * __restrict__ data, DataLength databitlen)
 {
     if ((databitlen & 7) == 0) {
 
@@ -325,7 +325,7 @@ __device__ void cn_skein_update(skeinHashState *state, const BitSequence *data, 
     }
 }
 
-__device__ void cn_skein(const BitSequence *data, DataLength len, BitSequence *hashval)
+__device__ void cn_skein(const BitSequence * __restrict__ data, DataLength len, BitSequence * __restrict__ hashval)
 {
     int hashbitlen = 256;
     DataLength databitlen = len << 3;

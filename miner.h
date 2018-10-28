@@ -1,13 +1,12 @@
 #ifndef __MINER_H__
 #define __MINER_H__
 
-#ifdef __cplusplus
-extern "C" {
+#ifdef WIN32
+#include "cpuminer-config-win.h"
+#else
+#include "cpuminer-config.h"
 #endif
 
-#include "cpuminer-config.h"
-
-#include <stdbool.h>
 #include <inttypes.h>
 #include <sys/time.h>
 #include <pthread.h>
@@ -19,7 +18,7 @@ extern "C" {
 #define strdup(x) _strdup(x)
 #define strncasecmp(x,y,z) _strnicmp(x,y,z)
 #define strcasecmp(x,y) _stricmp(x,y)
-typedef int ssize_t;
+typedef SSIZE_T ssize_t;
 #endif
 
 #ifdef STDC_HEADERS
@@ -41,10 +40,7 @@ typedef int ssize_t;
 #  include <malloc.h>
 #  define alloca _alloca
 # elif !defined HAVE_ALLOCA
-#  ifdef  __cplusplus
-extern "C"
-#  endif
-void *alloca (size_t);
+   void *alloca (size_t);
 # endif
 #endif
 
@@ -69,6 +65,8 @@ enum {
 #define unlikely(expr) (expr)
 #define likely(expr) (expr)
 #endif
+
+#define MAX_GPU 16
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
@@ -194,11 +192,22 @@ void sha256_init_8way(uint32_t *state);
 void sha256_transform_8way(uint32_t *state, const uint32_t *block, int swap);
 #endif
 
+typedef enum __algo_t
+{
+	algo_old,
+	algo_monero,
+	algo_graft,
+	algo_stellite,
+	algo_intense,
+	algo_electroneum,
+	algo_sumokoin
+} algo_t;
+
 extern int scanhash_cryptonight(int thr_id, uint32_t *pdata,
 	const uint32_t *ptarget, uint32_t max_nonce,
-	unsigned long *hashes_done);
+	unsigned long *hashes_done, uint32_t *results);
 
-extern void cryptonight_hash(void* output, const void* input, size_t len);
+extern int cryptonight_hash(void* output, const void* input, size_t len, int variant, algo_t opt_algo);
 
 struct thr_info {
 	int		id;
@@ -211,6 +220,7 @@ struct work_restart {
 	char			padding[128 - sizeof(unsigned long)];
 };
 
+extern bool opt_colors;
 extern bool opt_debug;
 extern bool opt_protocol;
 extern int opt_timeout;
@@ -227,14 +237,12 @@ extern struct thr_info *thr_info;
 extern int longpoll_thr_id;
 extern int stratum_thr_id;
 extern struct work_restart *work_restart;
-extern bool opt_trust_pool;
-extern uint16_t opt_vote;
-extern bool jsonrpc_2;
 
 #define JSON_RPC_LONGPOLL	(1 << 0)
 #define JSON_RPC_QUIET_404	(1 << 1)
 #define JSON_RPC_IGNOREERR  (1 << 2)
 
+void color_init();
 extern void applog(int prio, const char *fmt, ...);
 extern json_t *json_rpc_call(CURL *curl, const char *url, const char *userpass,
 	const char *rpc_req, bool, bool, int *);
@@ -244,6 +252,7 @@ extern int timeval_subtract(struct timeval *result, struct timeval *x,
 	struct timeval *y);
 extern bool fulltest(const uint32_t *hash, const uint32_t *target);
 extern void diff_to_target(uint32_t *target, double diff);
+void exit_if_cudaerror(int thr_id, const char *file, int line);
 
 struct work {
 	uint32_t data[32];
@@ -293,12 +302,12 @@ struct stratum_ctx {
 	pthread_mutex_t work_lock;
 };
 
+bool stratum_keepalived(struct stratum_ctx *sctx , const char *rpc2_id);
 bool stratum_socket_full(struct stratum_ctx *sctx, int timeout);
 bool stratum_send_line(struct stratum_ctx *sctx, char *s);
 char *stratum_recv_line(struct stratum_ctx *sctx);
 bool stratum_connect(struct stratum_ctx *sctx, const char *url);
 void stratum_disconnect(struct stratum_ctx *sctx);
-bool stratum_subscribe(struct stratum_ctx *sctx);
 bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *pass);
 bool stratum_handle_method(struct stratum_ctx *sctx, const char *s);
 
@@ -313,9 +322,5 @@ extern bool tq_push(struct thread_q *tq, void *data);
 extern void *tq_pop(struct thread_q *tq, const struct timespec *abstime);
 extern void tq_freeze(struct thread_q *tq);
 extern void tq_thaw(struct thread_q *tq);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __MINER_H__ */

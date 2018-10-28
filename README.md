@@ -1,78 +1,106 @@
-ccminer-cryptonight
+# ccminer-cryptonight, a ccminer mod by tsiv and KlausT
 
-A modification of Christian Buchner's &amp; Christian H.'s
-ccminer project by tsiv for Cryptonight mining.
+If you find this tool useful and like to support its continued development,
+then consider a donation.
 
-July 5th 2014
--------------
+## KlausT's donation address:
+* BTC: 1QHH2dibyYL5iyMDk3UN4PVvFVtrWD8QKp
+* BCH: 1AH1u7B4KtDTUBgmT6NrXyahNEgTac3fL7
 
-Massive improvement to interactivity on Windows, should also further help with TDR issues.
-Introducing the --bfactor and --bsleep command line parameters allows for control over
-execution of the biggest resource hog of the algorithm. Use bfactor to determine how
-many parts the kernel is split into and bsleep to insert a short delay between the kernel
-launches. The defaults are no splitting / no sleep for Linux and split into 64 (bfactor 6)
-parts / sleep 100 microseconds between launches for Windows. These defaults seem to work
-wonders on my 750 Ti on Windows 7, once again you may want to tweak according to your 
-environment.
-
-June 30th 2014
---------------
-
-I've keep getting asked for donation addresses, here are some
-for wallets that I currently have up. Will set up other wallets
-on request, in case you feel like donating but don't hold any
-of the currencies I currently have addresses for.
-
+## tsiv's donation adresses:
 * BTC: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs
-* DRK: XrHp267JNTVdw5P3dsBpqYfgTpWnzoESPQ
-* JPC: Jb9hFeBgakCXvM5u27rTZoYR9j13JGmuc2
-* VTC: VwYsZFPb6KMeWuP4voiS9H1kqxcU9kGbsw
 * XMR: 42uasNqYPnSaG3TwRtTeVbQ4aRY3n9jY6VXX3mfgerWt4ohDQLVaBPv3cYGKDXasTUVuLvhxetcuS16ynt85czQ48mbSrWX
 
-In other news, I just yanked out the code for other alrogithms.
-This is now a cryptonight-only miner.
+Don't forget to support the original ccminer authors
+Christian Buchner and Christian H. This mod would not be
+here without their work on ccminer:
 
+* BTC donation address: 16hJF5mceSojnTD3ZTUDqdRhDyPJzoRakM
 
-June 24th 2014
---------------
+## Introduction
 
-Initial release, compiles and runs on Linux and Windows. 
-Documentation is scarce and probably will be, see README.txt
-and ccminer --help for the basics.
+This is a CUDA accelerated mining application for use with
+Monero and other coins based on the Cryptonight algorithm.
 
-Before you read further (and you should), I highly recommend
-running Linux. There are some issues with running on Windows
-that are 
+THIS PROGRAM IS PROVIDED "AS-IS", USE IT AT YOUR OWN RISK!
 
-Do note that the cryptonight kernel on this release is FAT
-and SLOW, and pretty much makes your Windows computer
-unusable while running. If you plan on running it on your
-primary desktop with only a single GPU... Well, just don't 
-think you'll be using the computer for anything. I haven't
-tested it, but I'd expect it'll be fine if you have multiple
-GPUs on the system and you run the miner only on the cards
-that don't have a display attached. You'll still have the
-TDR issue to deal with though:
+## Command Line Options
+`
+ -a  --algo            choose between the supported algos:
+                          cryptonight (the old version)
+                          monero      (v7)
+                          graft       (v8)
+                          stellite    (v3)
+                          intense     (v4)
+                          electroneum (v6)
+ -d, --devices         gives a comma separated list of CUDA device IDs
+                       to operate on. Device IDs start counting from 0!
+                       Alternatively give string names of your card like
+                       gtx780ti or gt640#2 (matching 2nd gt640 in the PC).
+ -l, --launch=CONFIG   launch config for the Cryptonight kernel.
+                       a comma separated list of values in form of
+                       AxB where A is the number of threads to run in
+                       each thread block and B is the number of thread
+                       blocks to launch. If less values than devices in use
+                       are provided, the last value will be used for
+                       the remaining devices. If you don't need to vary the
+                       value between devices, you can just enter a single
+                       value and it will be used for all devices.
+     --bfactor=X       Enables running the Cryptonight kernel in smaller pieces.\n\
+                       The kernel will be run in 2^X parts according to bfactor,\n\
+                       with a small pause between parts, specified by --bsleep.\n\
+                       This is a per-device setting like the launch config.\n\
+                       (default: 0 (no splitting) on Linux, 6 (64 parts) on Windows)\n\
+     --bsleep=X        Insert a delay of X microseconds between kernel launches.\n\
+                       Use in combination with --bfactor to mitigate the lag\n\
+                       when running on your primary GPU.\n\
+                       This is a per-device setting like the launch config.\n\
+ -f, --diff            Divide difficulty by this factor (std is 1) 
+ -o, --url=URL         URL of mining server (default: " DEF_RPC_URL ")
+ -O, --userpass=U:P    username:password pair for mining server
+ -u, --user=USERNAME   username for mining server
+ -p, --pass=PASSWORD   password for mining server
+     --cert=FILE       certificate for mining server using SSL
+ -x, --proxy=[PROTOCOL://]HOST[:PORT]  connect through a proxy
+ -t, --threads=N       number of miner threads
+                       (default: number of nVidia GPUs in your system)
+ -r, --retries=N       number of times to retry if a network call fails
+                         (default: retry indefinitely)
+ -R, --retry-pause=N   time to pause between retries, in seconds (default: 15)
+ -T, --timeout=N       network timeout, in seconds (default: 270)
+ -k, --keepalive       send keepalive requests to avoid a stratum timeout
+ -s, --scantime=N      upper bound on time spent scanning current work when
+                       long polling is unavailable, in seconds (default: 5)
+     --no-longpoll     disable X-Long-Polling support
+     --no-stratum      disable X-Stratum support
+ -q, --quiet           disable per-thread hashmeter output
+ -D, --debug           enable debug output
+     --color           enable color output
+ -P, --protocol-dump   verbose dump of protocol-level activities
+ -B, --background      run the miner in the background (Linux only)
+     --benchmark       run in offline benchmark mode
+ -c, --config=FILE     load a JSON-format configuration file
+ -V, --version         display version information and exit
+ -h, --help            display this help text and exit
+```
 
-The kernel also tends to turn just long enough for Windows 
-to think the GPU crashed and trigger the driver timeout 
-detection and recovery. This is where the kernel launch 
-option (-l) hopefully comes in.
+## AUTHORS
 
-The default launch is 40 tread blocks of 8 threads each. Don't
-know why, but at least my 750 Ti seems to like 8 thread blocks
-best. 40 blocks of 8 is something that, once again on my 750 ti,
-manages to run fast enough to finish before the Windows default
-2 second timeout. Basically enables you to run the damn thing
-without the driver crashing instantly, which is why I made
-it the default. Since I only have that one single 750 Ti
-to test on Windows, I haven't got the slightest clue how
-it works on other GPUs. Your mileage may vary.
+Notable contributors to this application are:
+KlausT:
+- various fixes and optimizations
 
-I peaked out my hashrate with 60 blocks of 8 threads, you'll
-just have to experiment with it until (if) you find the sweet
-spot for your cards. Do keep in mind that cryptonight needs
-2 MB of memory for each hash, that would mean about 960 MB
-of GPU memory for the 8x60 config. Keep that and the amount
-of memory on your card in mind while playing around with 
-the numbers.
+tsiv: 
+- CUDA implementation for the Cryptonight algorithm.
+
+Christian Buchner, Christian H. (Germany): 
+- modifying the original pooler-cpuminer for use with CUDA.
+
+Jeff Garzik, pooler + contributors:
+- The original pooler-cpuminer project
+
+LucasJones:
+ - JSON-RPC 2.0 handling and the Cryptonight C-code comes
+   from his cpuminer fork, cpuminer-multi
+
+Source code is included to satisfy GNU GPL V3 requirements.

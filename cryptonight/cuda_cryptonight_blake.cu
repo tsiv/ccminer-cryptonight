@@ -11,7 +11,7 @@ typedef struct {
 #define U32TO8(p, v) \
     (p)[0] = (uint8_t)((v) >> 24); (p)[1] = (uint8_t)((v) >> 16); \
     (p)[2] = (uint8_t)((v) >>  8); (p)[3] = (uint8_t)((v)      );
-#define BLAKE_ROT(x,n) (((x)<<(32-n))|((x)>>(n)))
+#define BLAKE_ROT(x,n) ROTR32(x, n)
 #define BLAKE_G(a,b,c,d,e)                                      \
     v[a] += (m[d_blake_sigma[i][e]] ^ d_blake_cst[d_blake_sigma[i][e+1]]) + v[b]; \
     v[d] = BLAKE_ROT(v[d] ^ v[a],16);                           \
@@ -22,34 +22,33 @@ typedef struct {
     v[c] += v[d];                                         \
     v[b] = BLAKE_ROT(v[b] ^ v[c], 7);
 
-__constant__ uint8_t d_blake_sigma[14][16];
-__constant__ uint32_t d_blake_cst[16];
-
-const uint8_t h_blake_sigma[14][16] = {
-    { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15},
-    {14,10, 4, 8, 9,15,13, 6, 1,12, 0, 2,11, 7, 5, 3},
-    {11, 8,12, 0, 5, 2,15,13,10,14, 3, 6, 7, 1, 9, 4},
-    { 7, 9, 3, 1,13,12,11,14, 2, 6, 5,10, 4, 0,15, 8},
-    { 9, 0, 5, 7, 2, 4,10,15,14, 1,11,12, 6, 8, 3,13},
-    { 2,12, 6,10, 0,11, 8, 3, 4,13, 7, 5,15,14, 1, 9},
-    {12, 5, 1,15,14,13, 4,10, 0, 7, 6, 3, 9, 2, 8,11},
-    {13,11, 7,14,12, 1, 3, 9, 5, 0,15, 4, 8, 6, 2,10},
-    { 6,15,14, 9,11, 3, 0, 8,12, 2,13, 7, 1, 4,10, 5},
-    {10, 2, 8, 4, 7, 6, 1, 5,15,11, 9,14, 3,12,13, 0},
-    { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15},
-    {14,10, 4, 8, 9,15,13, 6, 1,12, 0, 2,11, 7, 5, 3},
-    {11, 8,12, 0, 5, 2,15,13,10,14, 3, 6, 7, 1, 9, 4},
-    { 7, 9, 3, 1,13,12,11,14, 2, 6, 5,10, 4, 0,15, 8}
+__constant__ uint8_t d_blake_sigma[14][16] =
+{
+	{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+	{14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3},
+	{11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4},
+	{7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8},
+	{9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13},
+	{2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9},
+	{12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11},
+	{13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10},
+	{6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5},
+	{10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0},
+	{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+	{14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3},
+	{11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4},
+	{7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8}
+};
+__constant__ uint32_t d_blake_cst[16]
+= {
+	0x243F6A88, 0x85A308D3, 0x13198A2E, 0x03707344,
+	0xA4093822, 0x299F31D0, 0x082EFA98, 0xEC4E6C89,
+	0x452821E6, 0x38D01377, 0xBE5466CF, 0x34E90C6C,
+	0xC0AC29B7, 0xC97C50DD, 0x3F84D5B5, 0xB5470917
 };
 
-const uint32_t h_blake_cst[16] = {
-    0x243F6A88, 0x85A308D3, 0x13198A2E, 0x03707344,
-    0xA4093822, 0x299F31D0, 0x082EFA98, 0xEC4E6C89,
-    0x452821E6, 0x38D01377, 0xBE5466CF, 0x34E90C6C,
-    0xC0AC29B7, 0xC97C50DD, 0x3F84D5B5, 0xB5470917
-};
-
-__device__ void cn_blake_compress(blake_state *S, const uint8_t *block) {
+__device__ void cn_blake_compress(blake_state * __restrict__ S, const uint8_t * __restrict__ block)
+{
     uint32_t v[16], m[16], i;
 
     for (i = 0; i < 16; ++i) m[i] = U8TO32(block + i * 4);
@@ -85,7 +84,7 @@ __device__ void cn_blake_compress(blake_state *S, const uint8_t *block) {
     for (i = 0; i < 8;  ++i) S->h[i] ^= S->s[i % 4];
 }
 
-__device__ void cn_blake_update(blake_state *S, const uint8_t *data, uint64_t datalen)
+__device__ void cn_blake_update(blake_state * __restrict__ S, const uint8_t * __restrict__ data, uint64_t datalen)
 {
     int left = S->buflen >> 3;
     int fill = 64 - left;
@@ -116,7 +115,7 @@ __device__ void cn_blake_update(blake_state *S, const uint8_t *data, uint64_t da
     }
 }
 
-__device__ void cn_blake_final(blake_state *S, uint8_t *digest)
+__device__ void cn_blake_final(blake_state * __restrict__ S, uint8_t * __restrict__ digest)
 {
     const uint8_t padding[] = {
         0x80,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -160,7 +159,7 @@ __device__ void cn_blake_final(blake_state *S, uint8_t *digest)
     U32TO8(digest + 28, S->h[7]);
 }
 
-__device__ void cn_blake(const uint8_t *in, uint64_t inlen, uint8_t *out)
+__device__ void cn_blake(const uint8_t * __restrict__ in, uint64_t inlen, uint8_t * __restrict__ out)
 {
     blake_state bs;
     blake_state *S = (blake_state *)&bs;

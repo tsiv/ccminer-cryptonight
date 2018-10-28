@@ -1,6 +1,35 @@
+#pragma once
+#ifdef WIN32
+#include "cpuminer-config-win.h"
+#else
+#include "cpuminer-config.h"
+#endif
 
-#define MEMORY         (1 << 21) // 2 MiB / 2097152 B
-#define ITER           (1 << 20) // 1048576
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdint.h>
+#include "miner.h"
+#include <cuda_runtime.h>
+
+#ifdef __INTELLISENSE__ 
+#define __CUDA_ARCH__ 610
+/* avoid red underlining */
+
+struct uint3
+{
+	unsigned int x, y, z;
+};
+
+struct uint3  threadIdx;
+struct uint3  blockIdx;
+struct uint3  blockDim;
+#define __funnelshift_r(a,b,c) 1
+#define __syncthreads()
+#define asm(x)
+#define SHFL(a,b,c) 1
+#define __umul64hi(x, y) (x*y)
+#endif
+
 #define AES_BLOCK_SIZE  16
 #define AES_KEY_SIZE    32
 #define INIT_SIZE_BLK   8
@@ -85,21 +114,17 @@
     for( i_memcpy4 = 0; i_memcpy4 < cnt; i_memcpy4++ ) \
         out_memcpy4[i_memcpy4] = in_memcpy4[i_memcpy4]; }
 
-#define XOR_BLOCKS(a,b) { \
+#define XOR_BLOCKS(a,b)  \
     ((uint64_t *)a)[0] ^= ((uint64_t *)b)[0]; \
-    ((uint64_t *)a)[1] ^= ((uint64_t *)b)[1]; }
+    ((uint64_t *)a)[1] ^= ((uint64_t *)b)[1]; 
 
-#define XOR_BLOCKS_DST(x,y,z) { \
-    ((uint64_t *)z)[0] = ((uint64_t *)(x))[0] ^ ((uint64_t *)(y))[0]; \
-    ((uint64_t *)z)[1] = ((uint64_t *)(x))[1] ^ ((uint64_t *)(y))[1]; }
+#define XOR_BLOCKS_DST(x,y,z)  \
+    ((uint64_t *)(z))[0] = ((uint64_t *)(x))[0] ^ ((uint64_t *)(y))[0]; \
+    ((uint64_t *)(z))[1] = ((uint64_t *)(x))[1] ^ ((uint64_t *)(y))[1]; 
 
-#define MUL_SUM_XOR_DST(a,c,dst) { \
-    uint64_t hi, lo = cuda_mul128(((uint64_t *)a)[0], ((uint64_t *)dst)[0], &hi) + ((uint64_t *)c)[1]; \
-    hi += ((uint64_t *)c)[0]; \
-    ((uint64_t *)c)[0] = ((uint64_t *)dst)[0] ^ hi; \
-    ((uint64_t *)c)[1] = ((uint64_t *)dst)[1] ^ lo; \
-    ((uint64_t *)dst)[0] = hi; \
-    ((uint64_t *)dst)[1] = lo; }
+#define XOR_BLOCKS_DST2(x,y,z)  \
+    ((uint64_t *)z)[0] = (x)[0] ^ (y)[0]; \
+    ((uint64_t *)z)[1] = (x)[1] ^ (y)[1]; 
 
 #define E2I(x) ((size_t)(((*((uint64_t*)(x)) >> 4) & 0x1ffff)))
 
@@ -116,6 +141,7 @@ union cn_slow_hash_state {
     };
 };
 
+/*
 struct cryptonight_gpu_ctx {
     uint32_t state[50];
     uint32_t a[4];
@@ -124,6 +150,7 @@ struct cryptonight_gpu_ctx {
     uint32_t key2[40];
     uint32_t text[32];
 };
+*/
 
 void hash_permutation(union hash_state *state);
 void hash_process(union hash_state *state, const uint8_t *buf, size_t count);

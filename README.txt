@@ -1,37 +1,23 @@
-
-ccminer-cryptonight, a ccminer mod by tsiv
+ccminer-cryptonight, a ccminer mod by tsiv and KlausT
 -------------------------------------------------------------
 
 ***************************************************************
 If you find this tool useful and like to support its continued 
           development, then consider a donation.
 
-   BTC donation address: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs
-   DRK donation address: XrHp267JNTVdw5P3dsBpqYfgTpWnzoESPQ
-   JPC donation address: Jb9hFeBgakCXvM5u27rTZoYR9j13JGmuc2
-   VTC donation address: VwYsZFPb6KMeWuP4voiS9H1kqxcU9kGbsw
-   XMR donation address: 
-     (man these are long... single address, split on two lines)
-     42uasNqYPnSaG3TwRtTeVbQ4aRY3n9jY6VXX3mfgerWt4ohD
-     QLVaBPv3cYGKDXasTUVuLvhxetcuS16ynt85czQ48mbSrWX
+KlausT's BTC donation addresses: 1QDwdLPrPYSoPqS7pB2kGG84YX6hEcQ4JN
+                                 bc1qpt7qnvjaqu8t24xqajgyfqan2v00hrdgrut0zq
+KlausT's BCH donation addresses: 1AH1u7B4KtDTUBgmT6NrXyahNEgTac3fL7
+                                 qpjupzv3nevqzlkyxx5d736xt78jvet7usm479kl73
+
+tsiv's BTC donation address: 1JHDKp59t1RhHFXsTw2UQpR3F9BBz3R3cs
+tsiv's XMR donation address: 42uasNqYPnSaG3TwRtTeVbQ4aRY3n9jY6VXX3mfgerWt4ohDQLVaBPv3cYGKDXasTUVuLvhxetcuS16ynt85czQ48mbSrWX
 
 Don't forget to support the original ccminer authors
 Christian Buchner and Christian H. This mod would not be
 here without their work on ccminer:
 
-   LTC donation address: LKS1WDKGED647msBQfLBHV3Ls8sveGncnm
    BTC donation address: 16hJF5mceSojnTD3ZTUDqdRhDyPJzoRakM
-   YAC donation address: Y87sptDEcpLkLeAuex6qZioDbvy1qXZEj4
-   VTC donation address: VrjeFzMgvteCGarLw85KivBzmsiH9fqp4a
-   MAX donation address: mHrhQP9EFArechWxTFJ97s9D3jvcCvEEnt
-  DOGE donation address: DT9ghsGmez6ojVdEZgvaZbT2Z3TruXG6yP
-   HVC donation address: HNN3PyyTMkDo4RkEjkWSGMwqia1yD8mwJN
-   GRS donation address: FmJKJAhvyHWPeEVeLQHefr2naqgWc9ABTM
-   MYR donation address: MNHM7Q7HVfGpKDJgVJrY8ofwvmeugNewyf
-   JPC donation address: JYFBypVDkk583yKWY4M46TG5vXG8hfgD2U
-   SFR donation address: SR4b87aEnPfTs77bo9NnnaV21fiF6jQpAp
-   MNC donation address: MShgNUSYwybEbXLvJUtdNg1a7rUeiNgooK
-   BTQ donation address: 13GFwLiZL2DaA9XeE733PNrQX5QYLFsonS
 ***************************************************************
 
 >>> Introduction <<<
@@ -47,6 +33,13 @@ This code is based on the main ccminer branch, that in turn
 is based on the pooler cpuminer 2.3.2 release and inherits
 most of their command line interface and options.
 
+ -a  --algo            choose between the supported algos:
+                          cryptonight (the old version)
+                          monero      (v7)
+                          graft       (v8)
+                          stellite    (v3)
+                          intense     (v4)
+                          electroneum (v6)
  -d, --devices         gives a comma separated list of CUDA device IDs
                        to operate on. Device IDs start counting from 0!
                        Alternatively give string names of your card like
@@ -60,7 +53,6 @@ most of their command line interface and options.
                        the remaining devices. If you don't need to vary the
                        value between devices, you can just enter a single
 		       value and it will be used for all devices.
-		       (default: 8x40)
      --bfactor=X       Enables running the Cryptonight kernel in smaller pieces.\n\
                        The kernel will be run in 2^X parts according to bfactor,\n\
                        with a small pause between parts, specified by --bsleep.\n\
@@ -83,14 +75,16 @@ most of their command line interface and options.
                          (default: retry indefinitely)
  -R, --retry-pause=N   time to pause between retries, in seconds (default: 15)
  -T, --timeout=N       network timeout, in seconds (default: 270)
+ -k, --keepalive       send keepalive requests to avoid a stratum timeout
  -s, --scantime=N      upper bound on time spent scanning current work when
                        long polling is unavailable, in seconds (default: 5)
      --no-longpoll     disable X-Long-Polling support
      --no-stratum      disable X-Stratum support
  -q, --quiet           disable per-thread hashmeter output
  -D, --debug           enable debug output
+     --color           enable color output
  -P, --protocol-dump   verbose dump of protocol-level activities
- -B, --background      run the miner in the background
+ -B, --background      run the miner in the background (Linux only)
      --benchmark       run in offline benchmark mode
  -c, --config=FILE     load a JSON-format configuration file
  -V, --version         display version information and exit
@@ -100,6 +94,8 @@ most of their command line interface and options.
 >>> AUTHORS <<<
 
 Notable contributors to this application are:
+KlausT:
+- various fixes and optimizations
 
 tsiv: 
 - CUDA implementation for the Cryptonight algorithm.
